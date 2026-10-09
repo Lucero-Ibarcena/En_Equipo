@@ -1,0 +1,28 @@
+:root {
+  font-family: 'Aptos', 'Segoe UI', sans-serif;
+  color: #28352f;
+  background: #f7f7f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  --ink: #28352f;
+  --muted: #858e88;
+  --soft-muted: #a6ada7;
+  --green: #416b57;
+  --green-dark: #315542;
+  --green-light: #e7efe9;
+  --line: #eeefeb;
+  --paper: #fff;
+  --canvas: #f7f7f4;
+  --font-heading: 'Aptos Display', 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #a8c5af; outline-offset: 2px; }
+::selection { background: #dce9df; color: #24382d; }
