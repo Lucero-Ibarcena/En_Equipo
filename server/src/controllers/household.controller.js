@@ -1,8 +1,11 @@
-import { TASK_CATEGORIES, TASK_STATUSES } from '../config/constants.js';
+import { CATEGORY_ICONS, TASK_STATUSES } from '../config/constants.js';
 import {
   createHousehold,
+  createHouseholdCategory,
+  deleteHouseholdCategory,
   createTask,
   getHousehold,
+  getHouseholdCategories,
   inviteUserToHousehold,
   joinHousehold,
   listUserHouseholds,
@@ -12,6 +15,8 @@ import {
   resolveHouseholdJoinRequest,
   searchHouseholds,
   updateHouseholdMember,
+  updateHouseholdCategory,
+  updateHouseholdName,
   updateTask,
 } from '../services/household.service.js';
 
@@ -21,6 +26,46 @@ function isValidDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00`);
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+export async function createHouseholdCategoryController(request, response, next) {
+  try {
+    const { label, icon } = request.body ?? {};
+    if (typeof label !== 'string' || label.trim().length < 2 || label.trim().length > 32) return response.status(400).json({ error: 'El nombre de la categoría debe tener entre 2 y 32 caracteres.' });
+    if (!CATEGORY_ICONS.includes(icon)) return response.status(400).json({ error: 'Elegí un ícono disponible.' });
+    const result = await createHouseholdCategory(request.params.householdId, { label: label.trim(), icon });
+    if (result?.limit) return response.status(409).json({ error: 'Este hogar ya tiene el máximo de 30 categorías.' });
+    if (result?.duplicate) return response.status(409).json({ error: 'Ya existe una categoría con ese nombre.' });
+    response.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateHouseholdCategoryController(request, response, next) {
+  try {
+    const { label, icon } = request.body ?? {};
+    if (typeof label !== 'string' || label.trim().length < 2 || label.trim().length > 32) return response.status(400).json({ error: 'El nombre de la categoría debe tener entre 2 y 32 caracteres.' });
+    if (!CATEGORY_ICONS.includes(icon)) return response.status(400).json({ error: 'Elegí un ícono disponible.' });
+    const result = await updateHouseholdCategory(request.params.householdId, request.params.categoryId, { label: label.trim(), icon });
+    if (!result) return response.status(404).json({ error: 'No encontramos esa categoría.' });
+    if (result.duplicate) return response.status(409).json({ error: 'Ya existe una categoría con ese nombre.' });
+    response.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** [API: CATEGORÍAS] Elimina una categoría y las tareas que contiene. */
+export async function deleteHouseholdCategoryController(request, response, next) {
+  try {
+    const result = await deleteHouseholdCategory(request.params.householdId, request.params.categoryId);
+    if (!result) return response.status(404).json({ error: 'No encontramos esa categoría.' });
+    if (result.lastCategory) return response.status(409).json({ error: 'El hogar debe conservar al menos una categoría.' });
+    response.json(result);
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function listHouseholdsController(request, response, next) {
@@ -70,6 +115,18 @@ export async function createHouseholdController(request, response, next) {
     if (name.trim().length > 60) return response.status(400).json({ error: 'El nombre no puede superar los 60 caracteres.' });
     const household = await createHousehold(request.user.id, name.trim());
     response.status(201).json({ household, households: await listUserHouseholds(request.user.id) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateHouseholdNameController(request, response, next) {
+  try {
+    const { name } = request.body ?? {};
+    if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 60) return response.status(400).json({ error: 'El nombre del hogar debe tener entre 2 y 60 caracteres.' });
+    const household = await updateHouseholdName(request.params.householdId, name.trim());
+    if (!household) return response.status(404).json({ error: 'No encontramos ese hogar.' });
+    response.json({ household, households: await listUserHouseholds(request.user.id) });
   } catch (error) {
     next(error);
   }
@@ -147,7 +204,7 @@ export async function createTaskController(request, response, next) {
   try {
     const { title, category, assigneeId = null, dueDate = null, notes = '' } = request.body ?? {};
     if (typeof title !== 'string' || !title.trim()) return response.status(400).json({ error: 'El título de la tarea es obligatorio.' });
-    if (!TASK_CATEGORIES.includes(category)) return response.status(400).json({ error: 'Elegí una categoría válida.' });
+    if (!getHouseholdCategories(request.household).some((item) => item.id === category)) return response.status(400).json({ error: 'Elegí una categoría válida para este hogar.' });
     if (assigneeId && !request.household.members.some((member) => member.id === assigneeId)) return response.status(400).json({ error: 'Elegí a una persona de la casa o dejá la tarea sin asignar.' });
     if (dueDate !== null && !isValidDate(dueDate)) return response.status(400).json({ error: 'La fecha no tiene un formato válido.' });
     if (typeof notes !== 'string') return response.status(400).json({ error: 'Las notas deben ser texto.' });
@@ -166,7 +223,7 @@ export async function updateTaskController(request, response, next) {
       changes.title = title;
     }
     if (category !== undefined) {
-      if (!TASK_CATEGORIES.includes(category)) return response.status(400).json({ error: 'Elegí una categoría válida.' });
+      if (!getHouseholdCategories(request.household).some((item) => item.id === category)) return response.status(400).json({ error: 'Elegí una categoría válida para este hogar.' });
       changes.category = category;
     }
     if (assigneeId !== undefined) {

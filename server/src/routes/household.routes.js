@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import {
   createHouseholdController,
+  createHouseholdCategoryController,
+  deleteHouseholdCategoryController,
   createMemberController,
   createTaskController,
   deleteMemberController,
@@ -12,6 +14,8 @@ import {
   requestJoinController,
   resolveJoinRequestController,
   updateMemberController,
+  updateHouseholdCategoryController,
+  updateHouseholdNameController,
   updateTaskController,
 } from '../controllers/household.controller.js';
 import { requireAuth, requireHouseholdMember, requireHouseholdOwner } from '../middleware/auth.middleware.js';
@@ -25,6 +29,11 @@ router.patch('/households/:householdId/join-requests/:requestId', requireAuth, r
 router.post('/households', requireAuth, createHouseholdController);
 router.post('/households/join', requireAuth, joinHouseholdController);
 router.get('/households/:householdId', requireAuth, requireHouseholdMember, getHouseholdController);
+router.patch('/households/:householdId', requireAuth, requireHouseholdMember, requireHouseholdOwner, updateHouseholdNameController);
+// [API: CATEGORÍAS] Solo quien administra el hogar puede mantener sus categorías.
+router.post('/households/:householdId/categories', requireAuth, requireHouseholdMember, requireHouseholdOwner, createHouseholdCategoryController);
+router.patch('/households/:householdId/categories/:categoryId', requireAuth, requireHouseholdMember, requireHouseholdOwner, updateHouseholdCategoryController);
+router.delete('/households/:householdId/categories/:categoryId', requireAuth, requireHouseholdMember, requireHouseholdOwner, deleteHouseholdCategoryController);
 router.post('/households/:householdId/members', requireAuth, requireHouseholdMember, requireHouseholdOwner, createMemberController);
 router.patch('/households/:householdId/members/:memberId', requireAuth, requireHouseholdMember, updateMemberController);
 router.delete('/households/:householdId/members/:memberId', requireAuth, requireHouseholdMember, deleteMemberController);

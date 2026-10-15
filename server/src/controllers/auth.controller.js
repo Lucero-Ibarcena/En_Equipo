@@ -1,4 +1,4 @@
-import { SESSION_MAX_AGE_SECONDS, authenticateAccount, createSession, deleteSession, getUserFromSession, recoverAccount, registerAccount, rotateRecoveryCode } from '../services/auth.service.js';
+import { SESSION_MAX_AGE_SECONDS, acknowledgeAccountRecovery, authenticateAccount, createSession, deleteSession, getUserFromSession, recoverAccount, registerAccount, startAccountRecovery, startPhoneVerification, verifyPhone } from '../services/auth.service.js';
 import { listUserHouseholds, listUserInvitations, resolveHouseholdInvitation, updateProfile } from '../services/household.service.js';
 import { readSessionCookie } from '../middleware/auth.middleware.js';
 
@@ -57,15 +57,95 @@ export async function loginController(request, response, next) {
   }
 }
 
+export async function startRecoveryController(request, response, next) {
+  try {
+    const { channel, contact } = request.body ?? {};
+    if (!['email', 'phone'].includes(channel) || typeof contact !== 'string') return response.status(400).json({ error: 'Elegí un medio de recuperación e ingresá el dato asociado a tu cuenta.' });
+    if (channel === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.trim())) return response.status(400).json({ error: 'Escribí un correo electrónico válido.' });
+    if (channel === 'phone' && !/^\+[1-9]\d{7,14}$/.test(contact.replace(/[\s().-]/g, ''))) return response.status(400).json({ error: 'Escribí el teléfono con código de país, por ejemplo +54 9 11 1234 5678.' });
+    const result = await startAccountRecovery({ channel, contact });
+    if (result.rateLimited) return response.status(429).json({ error: 'Ya pediste varios códigos. Esperá unos minutos antes de volver a intentarlo.' });
+    response.json({ challengeId: result.challengeId });
+  } catch (error) {
+    if (error.code === 'RECOVERY_DELIVERY_FAILED') return response.status(503).json({ error: error.message });
+    next(error);
+  }
+}
+
+export function recoveryConfirmationPageController(request, response) {
+  const { id: challengeId, token, decision } = request.query;
+  if (typeof challengeId !== 'string' || !/^[0-9a-f-]{36}$/i.test(challengeId) || typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token) || !['yes', 'no'].includes(decision)) return response.status(400).type('html').send('<main><h1>El enlace no es válido</h1><p>Volvé a En Equipo y pedí un código nuevo.</p></main>');
+  const heading = decision === 'yes' ? '¿Fuiste vos quien pidió esto?' : '¿Querés cancelar el intento?';
+  const buttonLabel = decision === 'yes' ? 'Sí, fui yo' : 'No fui yo, cancelar';
+  response.type('html').send(`<!doctype html><html lang="es-AR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>En Equipo · Confirmación</title><body style="font-family:system-ui,sans-serif;max-width:520px;margin:12vh auto;padding:24px;color:#334338"><h1>${heading}</h1><p>Confirmá esta acción para que En Equipo pueda continuar.</p><form action="/api/auth/recover/confirm" method="post"><input type="hidden" name="id" value="${challengeId}"><input type="hidden" name="token" value="${token}"><input type="hidden" name="decision" value="${decision}"><button style="padding:12px 18px;color:white;background:#416b57;border:0;border-radius:8px;font:inherit;font-weight:600" type="submit">${buttonLabel}</button></form></body></html>`);
+}
+
+export async function acknowledgeRecoveryController(request, response, next) {
+  try {
+    const { id: challengeId, token, decision } = request.body ?? {};
+    if (typeof challengeId !== 'string' || typeof token !== 'string' || !['yes', 'no'].includes(decision)) return response.status(400).type('html').send('<main><h1>El enlace no es válido</h1><p>Volvé a En Equipo y pedí un código nuevo.</p></main>');
+    const result = await acknowledgeAccountRecovery({ challengeId, token, decision });
+    if (result.invalid) return response.status(400).type('html').send('<main><h1>El enlace venció</h1><p>Volvé a En Equipo y pedí un código nuevo.</p></main>');
+    const message = result.cancelled
+      ? result.purpose === 'phone-verification'
+        ? '<h1>Cambio cancelado</h1><p>El teléfono de recuperación actual sigue asociado a tu cuenta.</p>'
+        : '<h1>Solicitud cancelada</h1><p>No se cambió la contraseña. Si no reconocés este intento, no compartas el código recibido.</p>'
+      : result.purpose === 'phone-verification'
+        ? '<h1>Cambio confirmado</h1><p>Confirmaste que fuiste vos. Volvé a En Equipo e ingresá el código que llegó por SMS para completar el cambio.</p>'
+        : '<h1>Solicitud confirmada</h1><p>Confirmaste que fuiste vos. Volvé a En Equipo para ingresar el código y elegir tu contraseña nueva.</p>';
+    response.type('html').send(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>En Equipo · Recuperación</title><body style="font-family:system-ui,sans-serif;max-width:520px;margin:12vh auto;padding:24px;color:#334338">${message}</body></html>`);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function recoverController(request, response, next) {
   try {
-    const { email, recoveryCode, password } = request.body ?? {};
-    if ((email !== undefined && typeof email !== 'string') || typeof recoveryCode !== 'string') return response.status(400).json({ error: 'Ingresá el código de recuperación válido.' });
+    const { challengeId, code, password, decision } = request.body ?? {};
+    if (typeof challengeId !== 'string' || !/^[0-9a-f-]{36}$/i.test(challengeId) || !['yes', 'no'].includes(decision)) return response.status(400).json({ error: 'La solicitud de recuperación no es válida.' });
+    if (decision === 'no') {
+      await recoverAccount({ challengeId, decision });
+      return response.json({ cancelled: true });
+    }
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) return response.status(400).json({ error: 'Ingresá el código de seis dígitos que te enviamos.' });
     if (typeof password !== 'string' || password.length < 8 || password.length > 128) return response.status(400).json({ error: 'La nueva contraseña debe tener entre 8 y 128 caracteres.' });
-    const result = await recoverAccount({ email, recoveryCode, password });
-    if (result.invalid) return response.status(400).json({ error: 'El correo o el código de recuperación no coinciden.' });
+    const result = await recoverAccount({ challengeId, code, password, decision });
+    if (result.invalid) return response.status(400).json({ error: 'El código no coincide, venció o ya se usó. Pedí uno nuevo para continuar.' });
     const token = await createSession(result.user.id);
     setSessionCookie(request, response, token);
+    response.json({
+      ...result,
+      households: await listUserHouseholds(result.user.id),
+      invitations: await listUserInvitations(result.user.id),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function startPhoneVerificationController(request, response, next) {
+  try {
+    const { phone } = request.body ?? {};
+    if (typeof phone !== 'string' || !/^\+[1-9]\d{7,14}$/.test(phone.replace(/[\s().-]/g, ''))) return response.status(400).json({ error: 'Ingresá el teléfono con código de país, por ejemplo +54 9 11 1234 5678.' });
+    const result = await startPhoneVerification(request.user.id, phone);
+    if (result.invalid) return response.status(400).json({ error: 'Ingresá un número con código de país.' });
+    if (result.conflict) return response.status(409).json({ error: 'Ese teléfono ya está verificado en otra cuenta.' });
+    if (result.rateLimited) return response.status(429).json({ error: 'Ya pediste varios códigos. Esperá unos minutos antes de volver a intentarlo.' });
+    response.json({ challengeId: result.challengeId });
+  } catch (error) {
+    if (error.code === 'RECOVERY_DELIVERY_FAILED') return response.status(503).json({ error: error.message });
+    next(error);
+  }
+}
+
+export async function verifyPhoneController(request, response, next) {
+  try {
+    const { challengeId, code } = request.body ?? {};
+    if (typeof challengeId !== 'string' || !/^[0-9a-f-]{36}$/i.test(challengeId) || typeof code !== 'string' || !/^\d{6}$/.test(code)) return response.status(400).json({ error: 'Ingresá el código de seis dígitos que te enviamos.' });
+    const result = await verifyPhone(request.user.id, challengeId, code);
+    if (result.invalid) return response.status(400).json({ error: 'El código no coincide o venció. Pedí uno nuevo para continuar.' });
+    if (result.conflict) return response.status(409).json({ error: 'Ese teléfono ya está verificado en otra cuenta.' });
+    if (result.awaitingConfirmation) return response.status(409).json({ error: 'Antes, confirmá este cambio desde el enlace que enviamos al correo de tu cuenta.' });
     response.json(result);
   } catch (error) {
     next(error);
@@ -118,18 +198,6 @@ export async function resolveInvitationController(request, response, next) {
     const result = await resolveHouseholdInvitation(request.user.id, request.params.invitationId, decision);
     if (result.notFound) return response.status(404).json({ error: 'La invitación ya no está disponible.' });
     response.json({ ...result, households: await listUserHouseholds(request.user.id), invitations: await listUserInvitations(request.user.id) });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function rotateRecoveryCodeController(request, response, next) {
-  try {
-    const { password } = request.body ?? {};
-    if (typeof password !== 'string') return response.status(400).json({ error: 'Ingresá tu contraseña actual.' });
-    const recoveryCode = await rotateRecoveryCode(request.user.id, password);
-    if (!recoveryCode) return response.status(400).json({ error: 'La contraseña actual no coincide.' });
-    response.json({ recoveryCode });
   } catch (error) {
     next(error);
   }

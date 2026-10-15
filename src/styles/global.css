@@ -1,28 +1,127 @@
+/* [ESTILOS GLOBALES] Reset, tipografía y tokens compartidos para temas claro y oscuro. */
 :root {
+  color-scheme: light;
   font-family: 'Aptos', 'Segoe UI', sans-serif;
-  color: #28352f;
-  background: #f7f7f4;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
-  font-weight: 400;
-  --ink: #28352f;
-  --muted: #858e88;
-  --soft-muted: #a6ada7;
+
+  --ink: #2e3d34;
+  --muted: #66736a;
+  --soft-muted: #87948a;
   --green: #416b57;
   --green-dark: #315542;
-  --green-light: #e7efe9;
-  --line: #eeefeb;
-  --paper: #fff;
-  --canvas: #f7f7f4;
+  --green-light: #e6eee7;
+  --green-text: #45654f;
+  --green-border: #cfd9ce;
+  --line: #e5eae4;
+  --paper: #fffefa;
+  --surface-raised: #fbfbf8;
+  --surface-soft: #f0f3ee;
+  --surface-inset: #f6f7f4;
+  --canvas: #f4f5f1;
+  --danger: #a95e4f;
+  --danger-text: #a95e4f;
+  --danger-surface: #fbefeb;
+  --warning-text: #956849;
+  --warning-surface: #fbf1e9;
+  --ink-on-danger: #ffffff;
+  --avatar-sage-bg: #dce8dc;
+  --avatar-sage-text: #466251;
+  --avatar-blue-bg: #dce7ed;
+  --avatar-blue-text: #4e6478;
+  --avatar-peach-bg: #f1dfd3;
+  --avatar-peach-text: #8d6859;
+  --avatar-plum-bg: #eadfeb;
+  --avatar-plum-text: #765c78;
+  --avatar-teal-bg: #d6ebe7;
+  --avatar-teal-text: #356d68;
+  --avatar-rose-bg: #f0dce5;
+  --avatar-rose-text: #825166;
+  --avatar-gold-bg: #f1e8c9;
+  --avatar-gold-text: #76602e;
+  --avatar-lavender-bg: #e4e1f5;
+  --avatar-lavender-text: #5d588b;
+  --avatar-coral-bg: #f4dcd4;
+  --avatar-coral-text: #8b5148;
+  --avatar-sky-bg: #d7e8f3;
+  --avatar-sky-text: #41647d;
+  --avatar-empty-bg: #eef0ec;
+  --avatar-empty-text: #68756d;
+  --focus-ring: #88a287;
+  --focus-surface: #e8f0e7;
+  --ink-on-accent: #ffffff;
+  --shadow-ink: rgb(27 46 36 / 20%);
+  --shadow-soft: 0 16px 44px rgb(27 46 36 / 12%);
+  --shadow-strong: 0 22px 70px rgb(27 46 36 / 20%);
   --font-heading: 'Aptos Display', 'Segoe UI', sans-serif;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #e4ebe5;
+  --muted: #b8c4ba;
+  --soft-muted: #9ba89d;
+  --green: #78a986;
+  --green-dark: #87b492;
+  --green-light: #2b3c30;
+  --green-text: #b9d4bc;
+  --green-border: #465d49;
+  --line: #354139;
+  --paper: #202823;
+  --surface-raised: #252f28;
+  --surface-soft: #27332b;
+  --surface-inset: #19211c;
+  --canvas: #151b17;
+  --danger: #995849;
+  --danger-text: #efb3a6;
+  --danger-surface: #422f2b;
+  --warning-text: #d2af87;
+  --warning-surface: #393328;
+  --ink-on-danger: #fff4f1;
+  --avatar-sage-bg: #334137;
+  --avatar-sage-text: #c0d5c2;
+  --avatar-blue-bg: #293944;
+  --avatar-blue-text: #c0d5e0;
+  --avatar-peach-bg: #46352d;
+  --avatar-peach-text: #e2c1ae;
+  --avatar-plum-bg: #3d3141;
+  --avatar-plum-text: #ddc5e0;
+  --avatar-teal-bg: #24403d;
+  --avatar-teal-text: #b8dcd6;
+  --avatar-rose-bg: #432e37;
+  --avatar-rose-text: #e4bdca;
+  --avatar-gold-bg: #403925;
+  --avatar-gold-text: #e1d29d;
+  --avatar-lavender-bg: #37334c;
+  --avatar-lavender-text: #d0caee;
+  --avatar-coral-bg: #482f2b;
+  --avatar-coral-text: #e9b7a8;
+  --avatar-sky-bg: #293b48;
+  --avatar-sky-text: #c2d8e6;
+  --avatar-empty-bg: #2b332d;
+  --avatar-empty-text: #c2ccc4;
+  --focus-ring: #8eaa91;
+  --focus-surface: #314136;
+  --ink-on-accent: #172019;
+  --shadow-ink: rgb(0 0 0 / 48%);
+  --shadow-soft: 0 16px 44px rgb(0 0 0 / 24%);
+  --shadow-strong: 0 22px 70px rgb(0 0 0 / 45%);
+}
+
 * { box-sizing: border-box; }
-body { min-width: 320px; min-height: 100vh; margin: 0; }
+
+html, body { min-height: 100%; }
+body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: clip; }
 button, input, select, textarea { font: inherit; }
 button { color: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #a8c5af; outline-offset: 2px; }
-::selection { background: #dce9df; color: #24382d; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+::selection { background: var(--green-light); color: var(--ink); }

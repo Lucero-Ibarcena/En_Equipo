@@ -1,4 +1,4 @@
-const SIZE = 41; // Version 6, error correction M (136 data codewords).
+const SIZE = 41; // QR version 6-L: 136 data codewords and 18 ECC codewords per block.
 const DATA_CODEWORDS = 136;
 const ECC_CODEWORDS_PER_BLOCK = 18;
 
@@ -92,7 +92,10 @@ export function createQrMatrix(payload) {
 
   for (const centerY of [6, 34]) {
     for (const centerX of [6, 34]) {
-      if (functions[centerY][centerX]) continue;
+      const overlapsFinder = (centerX === 6 && centerY === 6)
+        || (centerX === 34 && centerY === 6)
+        || (centerX === 6 && centerY === 34);
+      if (overlapsFinder) continue;
       for (let dy = -2; dy <= 2; dy += 1) {
         for (let dx = -2; dx <= 2; dx += 1) {
           setFunction(centerX + dx, centerY + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
@@ -101,8 +104,9 @@ export function createQrMatrix(payload) {
     }
   }
 
-  // Error correction level M is encoded as 00. Mask 0 is valid for every QR reader.
-  const formatData = 0b000;
+  // This encoder uses the version 6-L Reed-Solomon layout above.
+  // Format bits encode level L (01) and mask 0.
+  const formatData = 0b01000;
   let formatRemainder = formatData;
   for (let i = 0; i < 10; i += 1) formatRemainder = (formatRemainder << 1) ^ ((formatRemainder >>> 9) * 0x537);
   const formatBits = ((formatData << 10) | formatRemainder) ^ 0x5412;

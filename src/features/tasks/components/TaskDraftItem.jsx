@@ -1,8 +1,8 @@
 import { Clock3, FileText, Pencil, Trash2 } from 'lucide-react';
-import { CATEGORIES, formatTaskDate } from '../features/household/householdUtils.js';
+import { CATEGORIES, formatTaskDate } from '../../household/householdUtils.js';
 
-export default function TaskDraftItem({ draft, onContinue, onDelete }) {
-  const category = CATEGORIES[draft.category] || CATEGORIES.chores;
+export default function TaskDraftItem({ draft, categories = CATEGORIES, onContinue, onDelete }) {
+  const category = categories[draft.category] || CATEGORIES.chores;
   const savedAt = draft.updatedAt
     ? new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(draft.updatedAt))
     : 'recién';

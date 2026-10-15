@@ -1,9 +1,23 @@
 export const CATEGORIES = {
   chores: { label: 'Tareas del hogar', shortLabel: 'Tareas', icon: 'Sparkles' },
-  shopping: { label: 'Compras', shortLabel: 'Compras', icon: 'ShoppingBasket' },
+  shopping: { label: 'Lista de compras', shortLabel: 'Compras', icon: 'ShoppingBasket' },
   payments: { label: 'Pagos', shortLabel: 'Pagos', icon: 'CreditCard' },
   repairs: { label: 'Reparaciones', shortLabel: 'Arreglos', icon: 'Wrench' },
 };
+
+export const CATEGORY_ICON_OPTIONS = [
+  { id: 'HeartPulse', label: 'Salud' },
+  { id: 'PawPrint', label: 'Mascotas' },
+  { id: 'Pill', label: 'Medicamentos' },
+  { id: 'CalendarDays', label: 'Agenda' },
+  { id: 'ListTodo', label: 'Lista' },
+  { id: 'Sparkles', label: 'Hogar' },
+  { id: 'ShoppingBasket', label: 'Compras' },
+  { id: 'CreditCard', label: 'Pagos' },
+  { id: 'Wrench', label: 'Arreglos' },
+  { id: 'UsersRound', label: 'Personas' },
+  { id: 'House', label: 'Casa' },
+];
 
 export const NAV_ITEMS = [
   { id: 'all', label: 'Inicio', icon: 'House' },

@@ -1,24 +1,27 @@
+'use client';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Check, CircleHelp, Mail, Menu, Plus, Search, Sparkles } from 'lucide-react';
-import Avatar from '../components/Avatar.jsx';
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import HelpDialog from '../components/HelpDialog.jsx';
-import HouseholdPulse from '../components/HouseholdPulse.jsx';
-import AuthScreen from '../components/AuthScreen.jsx';
-import HouseholdDialog from '../components/HouseholdDialog.jsx';
-import HouseholdInvitationsDialog from '../components/HouseholdInvitationsDialog.jsx';
-import MemberFormDialog from '../components/MemberFormDialog.jsx';
-import ProfileDialog from '../components/ProfileDialog.jsx';
-import RecoveryCodeDialog from '../components/RecoveryCodeDialog.jsx';
-import Sidebar from '../components/Sidebar.jsx';
-import TaskFormDialog from '../components/TaskFormDialog.jsx';
-import TaskItem from '../components/TaskItem.jsx';
-import TaskDraftItem from '../components/TaskDraftItem.jsx';
+import { Bell, Check, CircleHelp, LogIn, Mail, Menu, Moon, Plus, Search, Sparkles, Sun, X } from 'lucide-react';
+import Avatar from '../components/common/Avatar.jsx';
+import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
+import HelpDialog from '../features/help/components/HelpDialog.jsx';
+import HouseholdPulse from '../features/household/components/HouseholdPulse.jsx';
+import AuthScreen from '../features/auth/components/AuthScreen.jsx';
+import CategoryManagerDialog from '../features/household/components/CategoryManagerDialog.jsx';
+import HouseholdDialog from '../features/household/components/HouseholdDialog.jsx';
+import HouseholdInvitationsDialog from '../features/household/components/HouseholdInvitationsDialog.jsx';
+import HouseholdInviteDialog from '../features/household/components/HouseholdInviteDialog.jsx';
+import MemberFormDialog from '../features/household/components/MemberFormDialog.jsx';
+import ProfileDialog from '../features/profile/components/ProfileDialog.jsx';
+import Sidebar from '../features/household/components/Sidebar.jsx';
+import TaskFormDialog from '../features/tasks/components/TaskFormDialog.jsx';
+import TaskItem from '../features/tasks/components/TaskItem.jsx';
+import TaskDraftItem from '../features/tasks/components/TaskDraftItem.jsx';
+import RandomFactCard from '../features/external-api/components/RandomFactCard.jsx';
 import { CATEGORIES, getGreeting, toLocalDateKey } from '../features/household/householdUtils.js';
 import { householdApi } from '../services/api.js';
-import './app.css';
 
-function getViewCopy(view) {
+function getViewCopy(view, categories) {
   const copyByView = {
     all: {
       title: 'El hogar, en equipo.',
@@ -46,32 +49,131 @@ function getViewCopy(view) {
       section: 'Cosas para resolver',
     },
   };
-  return copyByView[view] || copyByView.all;
+  if (view === 'all') return copyByView.all;
+  const category = categories[view];
+  if (!category) return copyByView.all;
+  const builtInCopy = copyByView[view];
+  return builtInCopy
+    ? { ...builtInCopy, title: category.label, section: category.label }
+    : { title: category.label, subtitle: `Un espacio compartido para ${category.label.toLocaleLowerCase('es-AR')}.`, section: category.label };
 }
 
-function NotificationPopover({ tasks, onNavigate }) {
+// [AVISOS] Deriva avisos de las fechas de tareas y recuerda cuáles ya se abrieron.
+function NotificationPopover({ tasks, userId, householdId, onNavigate }) {
   const [open, setOpen] = useState(false);
-  const lastDay = new Date(Date.now() + 7 * 86_400_000);
+  const storageKey = householdId ? `en-equipo:notifications:${userId || 'vista'}:${householdId}` : '';
+  const [noticeState, setNoticeState] = useState({ key: '', records: {} });
+  const todayKey = toLocalDateKey();
+  const lastDay = new Date();
+  lastDay.setDate(lastDay.getDate() + 7);
   const lastDayKey = toLocalDateKey(lastDay);
-  const upcomingTasks = tasks
+  const notices = useMemo(() => tasks
     .filter((task) => task.status !== 'done' && task.dueDate && task.dueDate <= lastDayKey)
-    .slice(0, 4);
+    .sort((first, second) => first.dueDate.localeCompare(second.dueDate))
+    .map((task) => {
+      const dueAtNoon = new Date(`${task.dueDate}T12:00:00`);
+      const todayAtNoon = new Date(`${todayKey}T12:00:00`);
+      const daysUntilDue = Math.round((dueAtNoon - todayAtNoon) / 86_400_000);
+      const dueLabel = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+        .format(dueAtNoon).replace('.', '');
+      const status = daysUntilDue < 0
+        ? `Vencida · ${dueLabel}`
+        : daysUntilDue === 0
+          ? `Vence hoy · ${dueLabel}`
+          : daysUntilDue <= 2
+            ? `Vence pronto · ${dueLabel}`
+            : `Vence el ${dueLabel}`;
+      return { task, id: `${task.id}:${task.dueDate}`, status };
+    }), [tasks, todayKey, lastDayKey]);
 
-  const selectTask = (task) => {
+  useEffect(() => {
+    if (!storageKey) {
+      setNoticeState({ key: '', records: {} });
+      return;
+    }
+    let records = {};
+    try {
+      const parsed = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) records = parsed;
+    } catch {
+      records = {};
+    }
+    setNoticeState({ key: storageKey, records });
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (noticeState.key !== storageKey) return;
+    setNoticeState((current) => {
+      if (current.key !== storageKey) return current;
+      let changed = false;
+      const records = { ...current.records };
+      for (const notice of notices) {
+        if (!records[notice.id]) {
+          records[notice.id] = { receivedAt: new Date().toISOString(), readAt: null };
+          changed = true;
+        }
+      }
+      return changed ? { ...current, records } : current;
+    });
+  }, [notices, noticeState.key, storageKey]);
+
+  // Completing a task dismisses its current notice; reopening it creates a fresh unread notice.
+  useEffect(() => {
+    if (noticeState.key !== storageKey) return;
+    const completedIds = new Set(tasks.filter((task) => task.status === 'done').map((task) => task.id));
+    if (!completedIds.size) return;
+    setNoticeState((current) => {
+      if (current.key !== storageKey) return current;
+      const records = { ...current.records };
+      let changed = false;
+      for (const id of Object.keys(records)) {
+        const separator = id.lastIndexOf(':');
+        if (separator > 0 && completedIds.has(id.slice(0, separator))) {
+          delete records[id];
+          changed = true;
+        }
+      }
+      return changed ? { ...current, records } : current;
+    });
+  }, [tasks, noticeState.key, storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || noticeState.key !== storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(noticeState.records));
+    } catch {
+      // Los avisos siguen disponibles durante esta sesión aunque no haya espacio local.
+    }
+  }, [storageKey, noticeState]);
+
+  const records = noticeState.key === storageKey ? noticeState.records : {};
+  const unreadCount = notices.filter((notice) => !records[notice.id]?.readAt).length;
+
+  const selectTask = (notice) => {
+    setNoticeState((current) => {
+      const currentRecords = current.key === storageKey ? current.records : {};
+      return {
+        key: storageKey,
+        records: {
+          ...currentRecords,
+          [notice.id]: { ...currentRecords[notice.id], readAt: new Date().toISOString() },
+        },
+      };
+    });
     setOpen(false);
-    onNavigate(task.category);
+    onNavigate(notice.task);
   };
 
   return (
     <div className="notification-wrap">
       <button
         className="icon-button topbar__notification"
-        aria-label="Avisos de vencimientos"
+        aria-label={`Avisos de vencimientos${unreadCount ? `: ${unreadCount} sin leer` : ''}`}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
         <Bell size={19} />
-        {upcomingTasks.length > 0 && <span />}
+        {unreadCount > 0 && <span />}
       </button>
       {open && (
         <section className="notification-popover" aria-label="Avisos de tareas">
@@ -79,16 +181,23 @@ function NotificationPopover({ tasks, onNavigate }) {
             <strong>Para tener en cuenta</strong>
             <button onClick={() => setOpen(false)} aria-label="Cerrar avisos">×</button>
           </div>
-          {upcomingTasks.length ? (
-            upcomingTasks.map((task) => (
-              <button className="notification-popover__item" key={task.id} onClick={() => selectTask(task)}>
-                <span className="notification-popover__dot" />
-                <span>
-                  <strong>{task.title}</strong>
-                  <small>{task.dueDate === toLocalDateKey() ? 'Vence hoy' : 'Vence pronto'}</small>
+          {notices.length ? (
+            notices.map((notice) => {
+              const record = records[notice.id];
+              const arrivedAt = record?.receivedAt ? new Date(record.receivedAt) : null;
+              const receivedLabel = arrivedAt && !Number.isNaN(arrivedAt.valueOf())
+                ? new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(arrivedAt)
+                : 'Registrado recién';
+              return <button className={`notification-popover__item${record?.readAt ? ' notification-popover__item--read' : ''}`} key={notice.id} onClick={() => selectTask(notice)}>
+                <span className="notification-popover__dot" aria-hidden="true" />
+                <span className="notification-popover__copy">
+                  <strong>{notice.task.title}</strong>
+                  <small className="notification-popover__due">{notice.status}</small>
+                  <small>Llegó el {receivedLabel}</small>
+                  <small>{record?.readAt ? 'Ya la abriste' : 'Sin leer'}</small>
                 </span>
-              </button>
-            ))
+              </button>;
+            })
           ) : (
             <p className="notification-popover__empty">No hay fechas próximas. La casa está al día.</p>
           )}
@@ -98,14 +207,16 @@ function NotificationPopover({ tasks, onNavigate }) {
   );
 }
 
-export default function App() {
+// [FRONTEND: APLICACIÓN] Coordina navegación, estado y diálogos de las funciones del hogar.
+export default function App({ initialJoinCode = '' }) {
   const [authLoading, setAuthLoading] = useState(true);
+  const [authInitialMode, setAuthInitialMode] = useState('login');
+  const [previewTheme, setPreviewTheme] = useState('light');
   const [user, setUser] = useState(null);
   const [guestMode, setGuestMode] = useState(false);
-  const [recoveryCode, setRecoveryCode] = useState('');
   const [invitations, setInvitations] = useState([]);
   const [invitationsOpen, setInvitationsOpen] = useState(false);
-  const [pendingJoinCode, setPendingJoinCode] = useState(() => new URLSearchParams(window.location.search).get('join') || '');
+  const [pendingJoinCode, setPendingJoinCode] = useState(initialJoinCode);
   const [households, setHouseholds] = useState([]);
   const [activeHouseholdId, setActiveHouseholdId] = useState('');
   const [household, setHousehold] = useState(null);
@@ -115,6 +226,8 @@ export default function App() {
   const [activeView, setActiveView] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationTaskId, setNotificationTaskId] = useState('');
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editingDraft, setEditingDraft] = useState(null);
@@ -126,11 +239,16 @@ export default function App() {
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [removingMember, setRemovingMember] = useState(false);
   const [householdDialogOpen, setHouseholdDialogOpen] = useState(false);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [categoryDeleteError, setCategoryDeleteError] = useState('');
+  const [householdInviteOpen, setHouseholdInviteOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [savingMember, setSavingMember] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -138,9 +256,7 @@ export default function App() {
   const [greeting, setGreeting] = useState(getGreeting);
   const taskDraftsKey = user && activeHouseholdId
     ? `en-equipo:task-drafts:${user.id}:${activeHouseholdId}`
-    : guestMode
-      ? `en-equipo:guest-task-drafts:${household?.id || 'demo'}`
-      : '';
+    : '';
   const taskDrafts = taskDraftsState.key === taskDraftsKey ? taskDraftsState.drafts : [];
 
   useEffect(() => {
@@ -213,7 +329,7 @@ export default function App() {
         try {
           const demo = await householdApi.demo();
           if (!current) return;
-          setHousehold(demo.household);
+          setHousehold({ ...demo.household, categories: demo.categories });
           setMembers(demo.members);
           setTasks(demo.tasks);
           setHouseholdRole('owner');
@@ -231,9 +347,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const theme = user?.theme || (guestMode ? localStorage.getItem('en-equipo:guest-theme') : null) || 'light';
+    const theme = user?.theme || (guestMode ? previewTheme : 'light');
     document.documentElement.dataset.theme = theme;
-  }, [user?.theme, guestMode]);
+  }, [user?.theme, guestMode, previewTheme]);
 
   useEffect(() => {
     if (activeHouseholdId) localStorage.setItem('en-equipo:active-household', activeHouseholdId);
@@ -287,7 +403,43 @@ export default function App() {
     else setLoading(false);
   }, [loadHousehold, user, activeHouseholdId]);
 
+  useEffect(() => {
+    if (!notificationTaskId) return undefined;
+    let highlightTimer;
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(`task-${notificationTaskId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('task-item--notification-target');
+      highlightTimer = window.setTimeout(() => {
+        target.classList.remove('task-item--notification-target');
+        setNotificationTaskId('');
+      }, 2200);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (highlightTimer) window.clearTimeout(highlightTimer);
+    };
+  }, [notificationTaskId, activeView, statusFilter, query, loading]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const tabs = document.querySelector('.status-tabs');
+      const selected = tabs?.querySelector('[aria-selected="true"]');
+      if (!tabs || !selected) return;
+      const tabsBounds = tabs.getBoundingClientRect();
+      const selectedBounds = selected.getBoundingClientRect();
+      if (selectedBounds.left < tabsBounds.left) tabs.scrollBy({ left: selectedBounds.left - tabsBounds.left - 8, behavior: 'smooth' });
+      else if (selectedBounds.right > tabsBounds.right) tabs.scrollBy({ left: selectedBounds.right - tabsBounds.right + 8, behavior: 'smooth' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [statusFilter, guestMode]);
+
   const activeTasks = useMemo(() => tasks.filter((task) => (task.folder || 'active') === 'active'), [tasks]);
+  const categoryMap = useMemo(() => Object.fromEntries(
+    (household?.categories || Object.entries(CATEGORIES).map(([id, category]) => ({ id, ...category, builtIn: true })))
+      .map((category) => [category.id, category]),
+  ), [household?.categories]);
   const archivedTaskCount = useMemo(() => tasks.filter((task) => task.folder === 'archived' && (activeView === 'all' || task.category === activeView)).length, [tasks, activeView]);
   const trashTaskCount = useMemo(() => tasks.filter((task) => task.folder === 'trash' && (activeView === 'all' || task.category === activeView)).length, [tasks, activeView]);
   const draftCount = useMemo(() => taskDrafts.filter((draft) => activeView === 'all' || draft.category === activeView).length, [taskDrafts, activeView]);
@@ -335,7 +487,7 @@ export default function App() {
     return pendingTasks.filter((task) => task.dueDate && task.dueDate >= todayKey && task.dueDate <= lastDayKey).length;
   }, [pendingTasks, todayKey, lastDayKey]);
 
-  const copy = getViewCopy(activeView);
+  const copy = getViewCopy(activeView, categoryMap);
   const sectionTitle = statusFilter === 'pending'
     ? 'Tareas pendientes'
     : statusFilter === 'upcoming'
@@ -355,15 +507,29 @@ export default function App() {
     month: 'long',
   }).format(new Date());
   const todayLabel = rawTodayLabel.charAt(0).toLocaleUpperCase('es-AR') + rawTodayLabel.slice(1);
+  const rawShortTodayLabel = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
+  const shortTodayLabel = rawShortTodayLabel.charAt(0).toLocaleUpperCase('es-AR') + rawShortTodayLabel.slice(1);
   const completedCount = activeTasks.filter((task) => task.status === 'done').length;
 
   const openNewTask = () => {
+    if (guestMode) {
+      handleOpenAuth('login');
+      return;
+    }
     setEditingTask(null);
     setEditingDraft(null);
     setTaskDialogOpen(true);
   };
 
   const openEditTask = (task) => {
+    if (guestMode) {
+      handleOpenAuth('login');
+      return;
+    }
     setEditingTask(task);
     setEditingDraft(null);
     setTaskDialogOpen(true);
@@ -387,18 +553,14 @@ export default function App() {
   };
 
   const handleSaveTask = async (formData, draftId) => {
+    if (guestMode) {
+      handleOpenAuth('login');
+      return;
+    }
     setSavingTask(true);
     setActionError('');
     try {
-      if (guestMode && editingTask) {
-        const updated = { ...editingTask, ...formData };
-        setTasks((current) => current.map((task) => task.id === updated.id ? updated : task));
-        setActiveView(updated.category);
-      } else if (guestMode) {
-        const created = { ...formData, id: `local-${globalThis.crypto?.randomUUID?.() || Date.now()}`, status: 'pending', folder: 'active' };
-        setTasks((current) => [created, ...current]);
-        setActiveView(created.category);
-      } else if (editingTask) {
+      if (editingTask) {
         const updated = await householdApi.updateTask(activeHouseholdId, editingTask.id, formData);
         setTasks((current) => current.map((task) => task.id === updated.id ? updated : task));
         setActiveView(updated.category);
@@ -419,22 +581,20 @@ export default function App() {
   };
 
   const handleSaveMember = async (name) => {
+    if (guestMode) {
+      handleOpenAuth('login');
+      return;
+    }
     setSavingMember(true);
     setActionError('');
     try {
-      const initials = name.trim().split(/\s+/).slice(0, 2).map((word) => word[0].toLocaleUpperCase('es-AR')).join('');
-      if (guestMode && editingMember) {
-        setMembers((current) => current.map((item) => item.id === editingMember.id ? { ...item, name: name.trim(), initials } : item));
-      } else if (guestMode) {
-        const colors = ['sage', 'blue', 'peach', 'plum'];
-        setMembers((current) => [...current, { id: `local-${globalThis.crypto?.randomUUID?.() || Date.now()}`, name: name.trim(), initials, color: colors[current.length % colors.length], role: 'member' }]);
-      } else if (editingMember) {
+      if (editingMember) {
         const member = await householdApi.updateMember(activeHouseholdId, editingMember.id, name);
         setMembers((current) => current.map((item) => item.id === member.id ? { ...item, ...member } : item));
       } else {
         await householdApi.createMember(activeHouseholdId, name);
       }
-      if (guestMode || editingMember) {
+      if (editingMember) {
         setMemberDialogOpen(false);
         setEditingMember(null);
       }
@@ -467,7 +627,6 @@ export default function App() {
     setHousehold(null);
     setMembers([]);
     setTasks([]);
-    setRecoveryCode(result.recoveryCode || '');
     const savedHouseholdId = localStorage.getItem('en-equipo:active-household');
     setActiveHouseholdId(joinedHouseholdId || (availableHouseholds.some((item) => item.id === savedHouseholdId)
       ? savedHouseholdId
@@ -480,7 +639,7 @@ export default function App() {
     setLoading(true);
     try {
       const demo = await householdApi.demo();
-      setHousehold(demo.household);
+      setHousehold({ ...demo.household, categories: demo.categories });
       setMembers(demo.members);
       setTasks(demo.tasks);
       setUser(null);
@@ -498,7 +657,8 @@ export default function App() {
     }
   };
 
-  const handleOpenAuth = () => {
+  const handleOpenAuth = (mode = 'login') => {
+    setAuthInitialMode(mode);
     setGuestMode(false);
   };
 
@@ -516,6 +676,13 @@ export default function App() {
     setQuery('');
   };
 
+  const handleRenameHousehold = async (name) => {
+    const result = await householdApi.renameHousehold(activeHouseholdId, name);
+    setHouseholds(result.households);
+    setHousehold((current) => current?.id === activeHouseholdId ? { ...current, ...result.household } : current);
+    return result;
+  };
+
   const handleRefreshMemberships = async () => {
     const result = await householdApi.listHouseholds();
     const newlyJoined = result.households.find((item) => !households.some((existing) => existing.id === item.id));
@@ -524,6 +691,7 @@ export default function App() {
   };
 
   const handleSelectHousehold = (householdId) => {
+    setHouseholdRole(households.find((item) => item.id === householdId)?.role || 'member');
     setHousehold(null);
     setMembers([]);
     setTasks([]);
@@ -556,7 +724,48 @@ export default function App() {
     }
   };
 
-  const handleRotateRecoveryCode = async (password) => householdApi.rotateRecoveryCode(password);
+  const handlePhoneVerified = (updatedUser) => setUser(updatedUser);
+
+  const saveCategory = async (categoryId, changes) => {
+    if (guestMode) {
+      handleOpenAuth('login');
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const result = categoryId
+        ? await householdApi.updateCategory(activeHouseholdId, categoryId, changes)
+        : await householdApi.createCategory(activeHouseholdId, changes);
+      setHousehold((current) => ({ ...current, categories: result.categories || [...Object.values(categoryMap).filter((item) => item.id !== result.category.id), result.category] }));
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleCreateCategory = (changes) => saveCategory('', changes);
+  const handleUpdateCategory = (categoryId, changes) => saveCategory(categoryId, changes);
+
+  // [CATEGORÍAS] Confirma el borrado definitivo de las tareas y borradores asociados.
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    setCategoryDeleteError('');
+    setSavingCategory(true);
+    try {
+      const result = await householdApi.deleteCategory(activeHouseholdId, categoryToDelete.id);
+      setHousehold((current) => ({ ...current, categories: result.categories }));
+      setTasks((current) => current.filter((task) => task.category !== result.deletedCategoryId));
+      setTaskDraftsState((current) => ({
+        ...current,
+        drafts: current.drafts.filter((draft) => draft.category !== result.deletedCategoryId),
+      }));
+      setActiveView((current) => current === result.deletedCategoryId ? 'all' : current);
+      setCategoryToDelete(null);
+    } catch (error) {
+      setCategoryDeleteError(error.message);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -700,13 +909,24 @@ export default function App() {
     setStatusFilter('all');
     setMobileNavOpen(false);
     setQuery('');
+    setSearchOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToNotificationTask = (task) => {
+    setActiveView(task.category);
+    setStatusFilter('all');
+    setQuery('');
+    setSearchOpen(false);
+    setMobileNavOpen(false);
+    setNotificationTaskId(task.id);
   };
 
   const showTaskFilter = (filter) => {
     setActiveView('all');
     setStatusFilter(filter);
     setQuery('');
+    setSearchOpen(false);
     setMobileNavOpen(false);
     requestAnimationFrame(() => document.getElementById('task-section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
@@ -714,6 +934,7 @@ export default function App() {
   const navigateToCategory = (category) => {
     setActiveView(category);
     setQuery('');
+    setSearchOpen(false);
     setMobileNavOpen(false);
     requestAnimationFrame(() => document.getElementById('task-section-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
@@ -722,10 +943,10 @@ export default function App() {
     return <main className="auth-loading"><span className="loading-spinner" />Preparando tu espacio…</main>;
   }
 
-  if (!user && !guestMode) return <AuthScreen onAuthenticated={handleAuthenticated} onReturnToGuest={handleReturnToGuest} pendingJoinCode={pendingJoinCode} />;
+  if (!user && !guestMode) return <AuthScreen initialMode={authInitialMode} onAuthenticated={handleAuthenticated} onReturnToGuest={handleReturnToGuest} pendingJoinCode={pendingJoinCode} />;
 
   if (user && !households.length) {
-    return <><HouseholdDialog open required onComplete={handleHouseholdComplete} /><HouseholdInvitationsDialog open={invitationsOpen} invitations={invitations} onClose={() => setInvitationsOpen(false)} onDecision={handleInvitationDecision} /><RecoveryCodeDialog code={recoveryCode} onClose={() => setRecoveryCode('')} /></>;
+    return <><HouseholdDialog open required onComplete={handleHouseholdComplete} /><HouseholdInvitationsDialog open={invitationsOpen} invitations={invitations} onClose={() => setInvitationsOpen(false)} onDecision={handleInvitationDecision} /></>;
   }
 
   const displayUser = user || { id: 'guest', name: '', initials: 'V', color: 'sage' };
@@ -742,9 +963,11 @@ export default function App() {
 
       <Sidebar
         activeView={activeView}
+        categories={categoryMap}
         onNavigate={handleNavigate}
+        onShowInvite={!guestMode && household?.inviteCode ? () => setHouseholdInviteOpen(true) : undefined}
+        onManageCategories={!guestMode && household ? () => setCategoryManagerOpen(true) : undefined}
         onAddMember={() => { setEditingMember(null); setMemberDialogOpen(true); }}
-        onEditMember={(member) => { setEditingMember(member); setMemberDialogOpen(true); }}
         onDeleteMember={(member) => setMemberToRemove(member)}
         onManageHouseholds={() => guestMode ? handleOpenAuth() : setHouseholdDialogOpen(true)}
         onSelectHousehold={handleSelectHousehold}
@@ -765,16 +988,17 @@ export default function App() {
           >
             <Menu size={20} />
           </button>
-          <div className="topbar__date"><span className="topbar__date-dot" />{todayLabel}</div>
+          <div className="topbar__date"><span className="topbar__date-dot" /><span className="topbar__date-label--long">{todayLabel}</span><span className="topbar__date-label--short">{shortTodayLabel}</span></div>
           <div className="topbar__actions">
             <button className="topbar__help" aria-label="Ayuda, guía y preguntas frecuentes" onClick={() => setHelpDialogOpen(true)}>
               <CircleHelp size={17} />
               <span>Ayuda</span>
             </button>
-      <NotificationPopover tasks={activeTasks} onNavigate={handleNavigate} />
+            {guestMode && <button className="icon-button topbar__theme" type="button" aria-label={previewTheme === 'light' ? 'Probar el tema oscuro' : 'Probar el tema claro'} title={previewTheme === 'light' ? 'Probar el tema oscuro' : 'Probar el tema claro'} onClick={() => setPreviewTheme((current) => current === 'light' ? 'dark' : 'light')}>{previewTheme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button>}
+            <NotificationPopover tasks={activeTasks} userId={user?.id} householdId={activeHouseholdId} onNavigate={handleNavigateToNotificationTask} />
             {!guestMode && <button className="icon-button topbar__notification" aria-label={`Invitaciones a hogares${invitations.length ? `: ${invitations.length} pendientes` : ''}`} title="Invitaciones a hogares" onClick={() => setInvitationsOpen(true)}><Mail size={18} />{invitations.length > 0 && <span />}</button>}
-            <button className={`topbar__account${guestMode ? ' topbar__account--guest' : ''}`} aria-label={guestMode ? 'Iniciar sesión para guardar cambios' : `Cuenta de ${user.name}`} onClick={guestMode ? handleOpenAuth : () => setProfileDialogOpen(true)} title={guestMode ? 'Iniciá sesión para guardar cambios' : 'Abrir cuenta'}>
-              {guestMode ? <span>Iniciar sesión</span> : <Avatar member={displayUser} size="small" />}
+            <button className={`topbar__account${guestMode ? ' topbar__account--guest' : ''}`} aria-label={guestMode ? 'Iniciar sesión para guardar cambios' : `Cuenta de ${user.name}`} onClick={guestMode ? () => handleOpenAuth('login') : () => setProfileDialogOpen(true)} title={guestMode ? 'Iniciá sesión para guardar cambios' : 'Abrir cuenta'}>
+              {guestMode ? <><LogIn size={15} className="topbar__account-icon" /><span>Iniciar sesión</span></> : <Avatar member={displayUser} size="small" />}
             </button>
           </div>
         </header>
@@ -782,11 +1006,11 @@ export default function App() {
         <div className="page-content">
           <section className="welcome-row">
           <div className="welcome-row__copy">
-              <div className="eyebrow welcome-row__eyebrow">{guestMode ? `${greeting}, estás en casa` : `${greeting}, ${displayUser.name}`} <span>✳</span></div>
+              <div className="eyebrow welcome-row__eyebrow">{guestMode ? 'TU ESPACIO' : `${greeting}, ${displayUser.name}`}</div>
               <h1>{copy.title}</h1>
-              <p>{copy.subtitle}</p>
+              <p>{guestMode ? 'Revisá pendientes y organizá lo que necesita tu hogar.' : copy.subtitle}</p>
             </div>
-            <button className="button button--primary create-button" onClick={openNewTask}>
+            <button className="button button--primary create-button" onClick={openNewTask} aria-label={guestMode ? 'Crear cuenta para agregar una tarea' : 'Agregar nueva tarea'}>
               <Plus size={17} strokeWidth={2.4} />
               <span>Nueva tarea</span>
             </button>
@@ -805,26 +1029,26 @@ export default function App() {
             </section>
           )}
 
-          <section className="stats-grid" aria-label="Resumen semanal">
+          {!guestMode && <section className="stats-grid" aria-label="Resumen semanal">
             <button type="button" className="stat-card stat-card--main" onClick={() => showTaskFilter('pending')} aria-label={`Ver ${pendingTasks.length} tareas pendientes en casa`}>
+              <span className="stat-card__deco stat-card__deco--circle" aria-hidden="true" />
               <span className="stat-card__label">Pendientes en casa</span>
               <span className="stat-card__value">{pendingTasks.length}<small> por compartir</small></span>
-              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--green" />Ver tareas pendientes <span aria-hidden="true">→</span></span>
-              <span className="stat-card__deco stat-card__deco--circle" />
+              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--green" aria-hidden="true" /> Ver tareas pendientes <span aria-hidden="true">→</span></span>
             </button>
             <button type="button" className="stat-card" onClick={() => showTaskFilter('upcoming')} aria-label={`Ver ${nextWeekCount} tareas para los próximos siete días`}>
+              <span className="stat-card__deco stat-card__deco--sun" aria-hidden="true" />
               <span className="stat-card__label">Para los próximos 7 días</span>
               <span className="stat-card__value">{nextWeekCount}<small> pendientes</small></span>
-              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--amber" />Ver próximas tareas <span aria-hidden="true">→</span></span>
-              <span className="stat-card__deco stat-card__deco--sun" />
+              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--amber" aria-hidden="true" /> Ver próximas tareas <span aria-hidden="true">→</span></span>
             </button>
             <button type="button" className="stat-card" onClick={() => showTaskFilter('done')} aria-label={`Ver ${completedCount} tareas hechas`}>
+              <span className="stat-card__deco stat-card__deco--leaf" aria-hidden="true">⌁</span>
               <span className="stat-card__label">Tareas hechas</span>
               <span className="stat-card__value">{completedCount}<small> en casa</small></span>
-              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--blue" />Ver lo que ya se hizo <span aria-hidden="true">→</span></span>
-              <span className="stat-card__deco stat-card__deco--leaf">⌁</span>
+              <span className="stat-card__foot"><span className="stat-card__dot stat-card__dot--blue" aria-hidden="true" /> Ver lo que ya se hizo <span aria-hidden="true">→</span></span>
             </button>
-          </section>
+          </section>}
 
           <div className="workspace-grid">
             <section className="task-board" aria-labelledby="task-section-title">
@@ -833,13 +1057,33 @@ export default function App() {
                   <span className="eyebrow">UN PASO A LA VEZ</span>
                   <h2 id="task-section-title">{sectionTitle}<span className="task-board__count">{statusFilter === 'drafts' ? visibleDrafts.length : visibleTasks.length}</span></h2>
                 </div>
-                <button className="button button--outline task-board__add" onClick={openNewTask}>
-                  <Plus size={16} />
-                  <span>Agregar</span>
-                </button>
+                <div className="task-board__heading-actions">
+                  {!guestMode && (searchOpen ? <label className="task-search task-search--inline">
+                    <Search size={15} aria-hidden="true" />
+                    <input
+                      id="task-search-input"
+                      autoFocus
+                      aria-label="Buscar tareas"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Buscar"
+                    />
+                    <button type="button" className="task-search__close" aria-label="Cerrar búsqueda" onClick={() => { setSearchOpen(false); setQuery(''); }}><X size={15} /></button>
+                  </label> : <button
+                    type="button"
+                    className="icon-button task-board__search-toggle"
+                    aria-label="Abrir búsqueda"
+                    aria-expanded={false}
+                    onClick={() => setSearchOpen(true)}
+                  ><Search size={17} /></button>)}
+                  <button className="button button--outline task-board__add" onClick={openNewTask}>
+                    <Plus size={16} />
+                    <span>Agregar</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="task-toolbar">
+              {!guestMode && <div className="task-toolbar">
                 <div className="status-tabs" role="tablist" aria-label="Filtrar tareas por estado">
                   {[
                     { id: 'all', label: 'Todas' },
@@ -855,33 +1099,24 @@ export default function App() {
                       role="tab"
                       aria-selected={statusFilter === tab.id}
                       className={`status-tab${statusFilter === tab.id ? ' status-tab--active' : ''}`}
-                      onClick={() => { setStatusFilter(tab.id); setQuery(''); }}
+                      onClick={() => { setStatusFilter(tab.id); setQuery(''); setSearchOpen(false); }}
                     >
                       {tab.label}{tab.count > 0 && <small className="status-tab__count">{tab.count}</small>}
                     </button>
                   ))}
                 </div>
-                <label className="task-search">
-                  <Search size={15} />
-                  <input
-                    aria-label="Buscar tareas"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar"
-                  />
-                </label>
-              </div>
+              </div>}
 
               {loading ? (
                 <div className="state-message"><span className="loading-spinner" />Cargando la casa…</div>
               ) : statusFilter === 'drafts' && visibleDrafts.length ? (
                 <div className="task-drafts">
-                  {visibleDrafts.map((draft) => <TaskDraftItem key={draft.id} draft={draft} onContinue={openDraft} onDelete={askToDeleteDraft} />)}
+                  {visibleDrafts.map((draft) => <TaskDraftItem key={draft.id} draft={draft} categories={categoryMap} onContinue={openDraft} onDelete={askToDeleteDraft} />)}
                 </div>
               ) : visibleTasks.length ? (
                 activeView === 'all' && !['archived', 'trash'].includes(statusFilter) ? (
                   <div className="category-sections">
-                    {Object.entries(CATEGORIES).map(([categoryId, category]) => {
+                    {Object.entries(categoryMap).map(([categoryId, category]) => {
                       const categoryTasks = visibleTasks.filter((task) => task.category === categoryId);
                       return (
                         <section className="category-section" key={categoryId} aria-label={category.label}>
@@ -895,6 +1130,7 @@ export default function App() {
                                 <TaskItem
                                   key={task.id}
                                   task={task}
+                                  categories={categoryMap}
                                   member={members.find((member) => member.id === task.assigneeId)}
                                   onToggle={handleToggleTask}
                                   onEdit={openEditTask}
@@ -917,6 +1153,7 @@ export default function App() {
                       <TaskItem
                         key={task.id}
                         task={task}
+                        categories={categoryMap}
                         member={members.find((member) => member.id === task.assigneeId)}
                         onToggle={handleToggleTask}
                         onEdit={openEditTask}
@@ -931,9 +1168,11 @@ export default function App() {
               ) : (
                 <div className="empty-state">
                   <span className="empty-state__icon"><Check size={22} /></span>
-                  <h3>{query ? 'No encontramos eso' : statusFilter === 'drafts' ? 'No hay borradores guardados.' : statusFilter === 'archived' ? 'No hay tareas archivadas.' : statusFilter === 'trash' ? 'La papelera está vacía.' : statusFilter === 'done' ? 'Todavía no hay tareas hechas.' : statusFilter === 'upcoming' ? 'No hay tareas para los próximos 7 días.' : statusFilter === 'pending' ? 'Todo está al día.' : activeView === 'all' ? 'Todavía no hay tareas.' : 'No hay tareas en esta sección.'}</h3>
-                  <p>{query ? 'Probá con otra palabra.' : statusFilter === 'drafts' ? 'Al escribir una tarea, queda guardada acá automáticamente hasta que la publiques.' : statusFilter === 'archived' ? 'Las tareas archivadas se pueden restaurar cuando vuelvan a hacer falta.' : statusFilter === 'trash' ? 'Las tareas que mandes a la papelera se pueden restaurar antes de eliminarlas definitivamente.' : statusFilter === 'pending' || statusFilter === 'upcoming' ? 'Podés revisar las tareas hechas o sumar algo nuevo.' : 'Si aparece algo nuevo, pueden sumarlo en equipo.'}</p>
-                  {!query && !['archived', 'trash', 'drafts'].includes(statusFilter) && <button className="button button--outline" onClick={openNewTask}><Plus size={15} />Sumar una tarea</button>}
+                  <h3>{guestMode ? 'Todavía no hay tareas.' : query ? 'No encontramos eso' : statusFilter === 'drafts' ? 'No hay borradores guardados.' : statusFilter === 'archived' ? 'No hay tareas archivadas.' : statusFilter === 'trash' ? 'La papelera está vacía.' : statusFilter === 'done' ? 'Todavía no hay tareas hechas.' : statusFilter === 'upcoming' ? 'No hay tareas para los próximos 7 días.' : statusFilter === 'pending' ? 'Todo está al día.' : activeView === 'all' ? 'Todavía no hay tareas.' : 'No hay tareas en esta sección.'}</h3>
+                  <p>{guestMode ? 'Iniciá sesión o creá una cuenta para guardar tareas y compartirlas con tu hogar.' : query ? 'Probá con otra palabra.' : statusFilter === 'drafts' ? 'Al escribir una tarea, queda guardada acá automáticamente hasta que la publiques.' : statusFilter === 'archived' ? 'Las tareas archivadas se pueden restaurar cuando vuelvan a hacer falta.' : statusFilter === 'trash' ? 'Las tareas que mandes a la papelera se pueden restaurar antes de eliminarlas definitivamente.' : statusFilter === 'pending' || statusFilter === 'upcoming' ? 'Podés revisar las tareas hechas o sumar algo nuevo.' : 'Si aparece algo nuevo, pueden sumarlo en equipo.'}</p>
+                  {guestMode
+                    ? <button className="button button--outline" onClick={() => handleOpenAuth('login')}><LogIn size={15} />Iniciar sesión</button>
+                    : !query && !['archived', 'trash', 'drafts'].includes(statusFilter) && <button className="button button--outline" onClick={openNewTask}><Plus size={15} />Sumar una tarea</button>}
                 </div>
               )}
 
@@ -947,19 +1186,20 @@ export default function App() {
               )}
             </section>
 
-            <HouseholdPulse members={members} tasks={activeTasks} onNavigate={handleNavigate} />
+            <HouseholdPulse members={members} tasks={activeTasks} categories={categoryMap} onNavigate={handleNavigate} preview={guestMode} externalContent={<RandomFactCard />} />
           </div>
 
-          <footer className="page-footer">
+          {!guestMode && <footer className="page-footer">
             <span><Sparkles size={13} />Lo compartido se siente más liviano.</span>
             <span>En Equipo · Hecho para convivir mejor</span>
-          </footer>
+          </footer>}
         </div>
       </main>
 
       <TaskFormDialog
         open={taskDialogOpen}
         members={members}
+        categories={categoryMap}
         initialCategory={activeView}
         initialTask={editingTask}
         initialDraft={editingDraft}
@@ -1015,8 +1255,33 @@ export default function App() {
         activeHousehold={{ ...households.find((item) => item.id === activeHouseholdId), joinRequests: household?.joinRequests || [] }}
         onClose={() => setHouseholdDialogOpen(false)}
         onComplete={handleHouseholdComplete}
+        onRename={handleRenameHousehold}
         onRefresh={loadHousehold}
         onRefreshMemberships={handleRefreshMemberships}
+      />
+      <CategoryManagerDialog
+        open={categoryManagerOpen && !guestMode}
+        categories={categoryMap}
+        onClose={() => setCategoryManagerOpen(false)}
+        onCreate={handleCreateCategory}
+        onUpdate={handleUpdateCategory}
+        onDelete={(category) => { setCategoryDeleteError(''); setCategoryToDelete(category); }}
+        saving={savingCategory}
+        guest={guestMode}
+      />
+      <ConfirmDialog
+        open={Boolean(categoryToDelete)}
+        title={`¿Eliminar “${categoryToDelete?.label || 'esta categoría'}”?`}
+        message={categoryDeleteError || `Se borrarán definitivamente ${tasks.filter((task) => task.category === categoryToDelete?.id).length} ${tasks.filter((task) => task.category === categoryToDelete?.id).length === 1 ? 'tarea' : 'tareas'} y ${taskDrafts.filter((draft) => draft.category === categoryToDelete?.id).length} ${taskDrafts.filter((draft) => draft.category === categoryToDelete?.id).length === 1 ? 'borrador' : 'borradores'} de esta categoría. No se podrán recuperar.`}
+        confirmLabel="Eliminar categoría"
+        onCancel={() => { setCategoryToDelete(null); setCategoryDeleteError(''); }}
+        onConfirm={confirmDeleteCategory}
+        saving={savingCategory}
+      />
+      <HouseholdInviteDialog
+        open={householdInviteOpen && !guestMode}
+        household={household}
+        onClose={() => setHouseholdInviteOpen(false)}
       />
       <HouseholdInvitationsDialog
         open={invitationsOpen}
@@ -1029,18 +1294,19 @@ export default function App() {
         user={user}
         onClose={() => setProfileDialogOpen(false)}
         onSubmit={handleSaveProfile}
-        onRotateRecoveryCode={handleRotateRecoveryCode}
+        onPhoneStart={householdApi.startPhoneVerification}
+        onPhoneVerify={householdApi.verifyPhone}
+        onPhoneVerified={handlePhoneVerified}
         onSignOut={handleSignOut}
         saving={savingProfile}
       />
-      <RecoveryCodeDialog code={recoveryCode} onClose={() => setRecoveryCode('')} />
       <HelpDialog
         open={helpDialogOpen}
         onClose={() => setHelpDialogOpen(false)}
         onCreateTask={openNewTask}
-        onAddMember={() => { setEditingMember(null); setMemberDialogOpen(true); }}
+        onAddMember={() => { if (guestMode) handleOpenAuth('login'); else { setEditingMember(null); setMemberDialogOpen(true); } }}
         onManageHouseholds={() => setHouseholdDialogOpen(true)}
-        canManageMembers={householdRole === 'owner'}
+        canManageMembers={!guestMode && householdRole === 'owner'}
         guest={guestMode}
       />
     </div>

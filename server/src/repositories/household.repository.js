@@ -18,6 +18,7 @@ function createInitialState() {
     version: 3,
     users: [],
     sessions: [],
+    authChallenges: [],
     joinRequests: [],
     invitations: [],
     households: [{
@@ -41,7 +42,7 @@ function migrateLegacyState(legacyState) {
     members: (legacyState.members || []).map((member) => ({ ...member, userId: null, role: 'member' })),
     tasks: legacyState.tasks || [],
   };
-  return { version: 3, users: [], sessions: [], joinRequests: [], invitations: [], households: [household] };
+  return { version: 3, users: [], sessions: [], authChallenges: [], joinRequests: [], invitations: [], households: [household] };
 }
 
 async function readState() {
@@ -51,6 +52,7 @@ async function readState() {
       let changed = false;
       if (!Array.isArray(storedState.joinRequests)) storedState.joinRequests = [];
       if (!Array.isArray(storedState.sessions)) storedState.sessions = [];
+      if (!Array.isArray(storedState.authChallenges)) { storedState.authChallenges = []; changed = true; }
       if (!Array.isArray(storedState.users)) storedState.users = [];
       if (!Array.isArray(storedState.invitations)) storedState.invitations = [];
       for (const household of storedState.households) {

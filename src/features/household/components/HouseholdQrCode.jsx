@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { createQrMatrix } from '../utils/qrCode.js';
+import { createQrMatrix } from '../../../utils/qrCode.js';
 
 export default function HouseholdQrCode({ value, label }) {
   const matrix = useMemo(() => {

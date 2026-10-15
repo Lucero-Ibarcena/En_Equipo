@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, HousePlus, KeyRound, Link, Search, X } from 'lucide-react';
-import { householdApi } from '../services/api.js';
+import { householdApi } from '../../../services/api.js';
 import HouseholdQrCode from './HouseholdQrCode.jsx';
-import { createHouseholdJoinLink, formatInviteCode } from '../utils/qrCode.js';
+import { createHouseholdJoinLink, formatInviteCode } from '../../../utils/qrCode.js';
 
-export default function HouseholdDialog({ open, required = false, activeHousehold, onClose, onComplete, onRefresh, onRefreshMemberships }) {
+export default function HouseholdDialog({ open, required = false, activeHousehold, onClose, onComplete, onRename, onRefresh, onRefreshMemberships }) {
   const [mode, setMode] = useState('create');
   const [name, setName] = useState('');
+  const [renameName, setRenameName] = useState('');
+  const [renameMessage, setRenameMessage] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -23,6 +25,8 @@ export default function HouseholdDialog({ open, required = false, activeHousehol
     if (open) {
       setMode('create');
       setName('');
+      setRenameName(activeHousehold?.name || '');
+      setRenameMessage('');
       setInviteCode('');
       setError('');
       setCopied(false);
@@ -33,7 +37,7 @@ export default function HouseholdDialog({ open, required = false, activeHousehol
       setSearched(false);
       setMembershipMessage('');
     }
-  }, [open]);
+  }, [open, activeHousehold?.id]);
 
   useEffect(() => {
     if (!open || required) return undefined;
@@ -62,6 +66,22 @@ export default function HouseholdDialog({ open, required = false, activeHousehol
       onComplete(result);
     } catch (submitError) {
       setError(submitError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRename = async (event) => {
+    event.preventDefault();
+    setError('');
+    setRenameMessage('');
+    setSubmitting(true);
+    try {
+      const result = await onRename(renameName.trim());
+      setRenameName(result.household.name);
+      setRenameMessage('Nombre actualizado.');
+    } catch (renameError) {
+      setError(renameError.message);
     } finally {
       setSubmitting(false);
     }
@@ -162,6 +182,15 @@ export default function HouseholdDialog({ open, required = false, activeHousehol
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="task-dialog__actions"><button className="button button--primary" type="submit" disabled={submitting}>{submitting ? 'Buscando…' : mode === 'create' ? 'Crear hogar' : mode === 'join' ? 'Unirme al hogar' : 'Buscar hogares'}</button></div>
       </form>
+
+      {activeHousehold?.id && activeHousehold.role === 'owner' && <form className="household-rename" onSubmit={handleRename}>
+        <div><strong>Nombre del hogar</strong><p>Podés cambiar cómo aparece en la lista de hogares.</p></div>
+        <div className="household-rename__field">
+          <label className="form-field"><span>Nombre</span><input aria-label="Nombre del hogar" autoComplete="organization" value={renameName} onChange={(event) => { setRenameName(event.target.value); setRenameMessage(''); }} maxLength={60} minLength={2} required /></label>
+          <button className="button button--outline" type="submit" disabled={submitting || renameName.trim() === activeHousehold.name}>{submitting ? 'Guardando…' : 'Guardar'}</button>
+        </div>
+        {renameMessage && <small className="household-rename__message" role="status">{renameMessage}</small>}
+      </form>}
 
       {mode === 'search' && searchResults.length > 0 && <div className="household-search-results" aria-live="polite">{searchResults.map((result) => <div className="household-search-result" key={result.id}><span><strong>{result.name}</strong><small>{result.memberCount} {result.memberCount === 1 ? 'integrante' : 'integrantes'}</small></span><button className="button button--outline" type="button" disabled={submitting || sentRequests.includes(result.id)} onClick={() => sendJoinRequest(result.id)}>{sentRequests.includes(result.id) ? <><Check size={14} />Solicitud enviada</> : 'Solicitar acceso'}</button></div>)}</div>}
       {mode === 'search' && searched && searchResults.length === 0 && <p className="household-search-empty">No encontramos hogares con ese nombre.</p>}

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Clock3, X } from 'lucide-react';
-import { CATEGORIES } from '../features/household/householdUtils.js';
+import { CATEGORIES } from '../../household/householdUtils.js';
 import TaskDatePicker from './TaskDatePicker.jsx';
 
 const EMPTY_FORM = { title: '', category: 'chores', assigneeId: '', dueDate: '', notes: '' };
 
-export default function TaskFormDialog({ open, members, initialCategory, initialTask, initialDraft, onClose, onSubmit, onDraftChange, saving, guest = false }) {
+export default function TaskFormDialog({ open, members, categories = CATEGORIES, initialCategory, initialTask, initialDraft, onClose, onSubmit, onDraftChange, saving, guest = false }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [draftId, setDraftId] = useState('');
@@ -14,7 +14,7 @@ export default function TaskFormDialog({ open, members, initialCategory, initial
     if (open) {
       setForm(initialDraft ? {
         title: initialDraft.title || '',
-        category: CATEGORIES[initialDraft.category] ? initialDraft.category : 'chores',
+        category: categories[initialDraft.category] ? initialDraft.category : Object.keys(categories)[0] || 'chores',
         assigneeId: initialDraft.assigneeId || '',
         dueDate: initialDraft.dueDate || '',
         notes: initialDraft.notes || '',
@@ -24,11 +24,11 @@ export default function TaskFormDialog({ open, members, initialCategory, initial
         assigneeId: initialTask.assigneeId || '',
         dueDate: initialTask.dueDate || '',
         notes: initialTask.notes || '',
-      } : { ...EMPTY_FORM, category: CATEGORIES[initialCategory] ? initialCategory : 'chores', assigneeId: members[0]?.id || '' });
+      } : { ...EMPTY_FORM, category: categories[initialCategory] ? initialCategory : Object.keys(categories)[0] || 'chores', assigneeId: members[0]?.id || '' });
       setDraftId(initialDraft?.id || globalThis.crypto?.randomUUID?.() || `draft-${Date.now()}`);
       setFormError('');
     }
-  }, [open, initialCategory, initialTask?.id, initialDraft?.id, members]);
+  }, [open, initialCategory, initialTask?.id, initialDraft?.id, members, categories]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -58,7 +58,8 @@ export default function TaskFormDialog({ open, members, initialCategory, initial
 
   const saveDraft = (nextForm) => {
     if (initialTask || !draftId) return;
-    const hasContent = Boolean(nextForm.title.trim() || nextForm.notes.trim() || nextForm.dueDate || nextForm.category !== (CATEGORIES[initialCategory] ? initialCategory : 'chores') || nextForm.assigneeId !== (members[0]?.id || ''));
+    const defaultCategory = categories[initialCategory] ? initialCategory : Object.keys(categories)[0] || 'chores';
+    const hasContent = Boolean(nextForm.title.trim() || nextForm.notes.trim() || nextForm.dueDate || nextForm.category !== defaultCategory || nextForm.assigneeId !== (members[0]?.id || ''));
     if (!hasContent) {
       onDraftChange?.(null, draftId);
       return;
@@ -75,7 +76,7 @@ export default function TaskFormDialog({ open, members, initialCategory, initial
         <form onSubmit={handleSubmit}>
           <label className="form-field"><span>¿Qué hay que hacer?</span><input autoFocus name="title" value={form.title} onChange={updateField} placeholder="Ej. Comprar alimento para Mimo" maxLength={100} /></label>
           <div className="form-grid">
-            <label className="form-field"><span>Tipo</span><select name="category" value={form.category} onChange={updateField}>{Object.entries(CATEGORIES).map(([id, category]) => <option key={id} value={id}>{category.label}</option>)}</select></label>
+            <label className="form-field"><span>Categoría</span><select name="category" value={form.category} onChange={updateField}>{Object.entries(categories).map(([id, category]) => <option key={id} value={id}>{category.label}</option>)}</select></label>
             <label className="form-field"><span>Responsable</span><select name="assigneeId" value={form.assigneeId || ''} onChange={updateField}><option value="">Sin asignar</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
           </div>
           <TaskDatePicker value={form.dueDate} onChange={(dueDate) => { const nextForm = { ...form, dueDate }; setForm(nextForm); saveDraft(nextForm); setFormError(''); }} />

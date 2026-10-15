@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_CATEGORIES } from '../config/constants.js';
 import { createInviteCode, getHouseholdState, updateHouseholdState } from '../repositories/household.repository.js';
 
 const COLORS = ['sage', 'blue', 'peach', 'plum', 'teal', 'rose', 'gold', 'lavender', 'coral', 'sky'];
@@ -52,6 +53,73 @@ function householdSummary(household, membership) {
   };
 }
 
+export function getHouseholdCategories(household) {
+  const saved = Array.isArray(household?.categories) ? household.categories : [];
+  const byId = new Map(saved.map((category) => [category.id, category]));
+  const hiddenIds = new Set(Array.isArray(household?.hiddenCategoryIds) ? household.hiddenCategoryIds : []);
+  const builtIns = DEFAULT_CATEGORIES
+    .filter((category) => !hiddenIds.has(category.id))
+    .map((category) => ({ ...category, ...(byId.get(category.id) || {}) }));
+  const custom = saved.filter((category) => typeof category?.id === 'string' && category.id.startsWith('custom-') && category.label);
+  return [...builtIns, ...custom];
+}
+
+/** [CATEGORÍAS] Crea una categoría del hogar y devuelve la lista visible actualizada. */
+export async function createHouseholdCategory(householdId, { label, icon }) {
+  return updateHouseholdState((state) => {
+    const household = state.households.find((item) => item.id === householdId);
+    if (!household) return null;
+    const categories = getHouseholdCategories(household);
+    if (categories.length >= 30) return { limit: true };
+    if (categories.some((category) => category.label.toLocaleLowerCase('es-AR') === label.toLocaleLowerCase('es-AR'))) return { duplicate: true };
+    const category = { id: `custom-${randomUUID()}`, label: label.trim(), shortLabel: label.trim(), icon, builtIn: false };
+    household.categories = [...categories, category];
+    return { category, categories: getHouseholdCategories(household) };
+  });
+}
+
+/** [CATEGORÍAS] Edita el nombre o ícono de una categoría existente. */
+export async function updateHouseholdCategory(householdId, categoryId, changes) {
+  return updateHouseholdState((state) => {
+    const household = state.households.find((item) => item.id === householdId);
+    if (!household) return null;
+    const categories = getHouseholdCategories(household);
+    const category = categories.find((item) => item.id === categoryId);
+    if (!category) return null;
+    if (categories.some((item) => item.id !== categoryId && item.label.toLocaleLowerCase('es-AR') === changes.label.toLocaleLowerCase('es-AR'))) return { duplicate: true };
+    const updated = { ...category, ...changes, label: changes.label.trim(), shortLabel: changes.label.trim() };
+    household.categories = categories.map((item) => item.id === categoryId ? updated : item);
+    return { category: updated, categories: getHouseholdCategories(household) };
+  });
+}
+
+/** [CATEGORÍAS] Elimina la categoría y todas las tareas asociadas de forma definitiva. */
+export async function deleteHouseholdCategory(householdId, categoryId) {
+  return updateHouseholdState((state) => {
+    const household = state.households.find((item) => item.id === householdId);
+    if (!household) return null;
+    const categories = getHouseholdCategories(household);
+    const category = categories.find((item) => item.id === categoryId);
+    if (!category) return null;
+    if (categories.length <= 1) return { lastCategory: true };
+
+    household.tasks = household.tasks.filter((task) => task.category !== categoryId);
+
+    if (category.builtIn) {
+      const hiddenIds = new Set(Array.isArray(household.hiddenCategoryIds) ? household.hiddenCategoryIds : []);
+      hiddenIds.add(categoryId);
+      household.hiddenCategoryIds = [...hiddenIds];
+    } else {
+      household.categories = (household.categories || []).filter((item) => item.id !== categoryId);
+    }
+
+    return {
+      categories: getHouseholdCategories(household),
+      deletedCategoryId: categoryId,
+    };
+  });
+}
+
 export async function listUserHouseholds(userId) {
   const state = await getHouseholdState();
   return state.households
@@ -93,6 +161,7 @@ export async function getHousehold(householdId, userId) {
       name: household.name,
       timezone: household.timezone,
       inviteCode: household.inviteCode,
+      categories: getHouseholdCategories(household),
     },
     members: household.members.map((member) => ({
       id: member.id,
@@ -125,9 +194,20 @@ export async function createHousehold(userId, name) {
       ownerId: userId,
       members: [createAccountMember(user, 'owner')],
       tasks: [],
+      categories: DEFAULT_CATEGORIES.map((category) => ({ ...category })),
     };
     state.households.push(household);
     return householdSummary(household, household.members[0]);
+  });
+}
+
+/** [HOGARES] Actualiza el nombre visible del hogar sin cambiar sus datos compartidos. */
+export async function updateHouseholdName(householdId, name) {
+  return updateHouseholdState((state) => {
+    const household = state.households.find((item) => item.id === householdId);
+    if (!household) return null;
+    household.name = name.trim();
+    return { id: household.id, name: household.name };
   });
 }
 
@@ -216,6 +296,8 @@ export async function updateProfile(userId, changes) {
       nickname: user.nickname,
       displayMode: user.displayMode,
       email: user.email,
+      phone: user.phone || '',
+      phoneVerified: Boolean(user.phoneVerified),
       initials: user.initials,
       color: user.color || 'sage',
       avatarData: user.avatarData || null,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Eye, EyeOff, ImagePlus, LogOut, Moon, Sun, X } from 'lucide-react';
-import Avatar from './Avatar.jsx';
+import { Check, ImagePlus, LogOut, Moon, Phone, Sun, X } from 'lucide-react';
+import Avatar from '../../../components/common/Avatar.jsx';
 
 const COLORS = [
   { id: 'sage', label: 'Salvia' },
@@ -15,7 +15,7 @@ const COLORS = [
   { id: 'sky', label: 'Celeste' },
 ];
 
-export default function ProfileDialog({ open, user, onClose, onSubmit, onRotateRecoveryCode, onSignOut, saving }) {
+export default function ProfileDialog({ open, user, onClose, onSubmit, onPhoneStart, onPhoneVerify, onPhoneVerified, onSignOut, saving }) {
   const [firstName, setFirstName] = useState(user?.firstName || user?.name?.split(/\s+/)[0] || '');
   const [lastName, setLastName] = useState(user?.lastName || user?.name?.split(/\s+/).slice(1).join(' ') || '');
   const [nickname, setNickname] = useState(user?.nickname || '');
@@ -24,11 +24,10 @@ export default function ProfileDialog({ open, user, onClose, onSubmit, onRotateR
   const [color, setColor] = useState(user?.color || 'sage');
   const [avatarData, setAvatarData] = useState(user?.avatarData || null);
   const [error, setError] = useState('');
-  const [recoveryPassword, setRecoveryPassword] = useState('');
-  const [recoveryPasswordVisible, setRecoveryPasswordVisible] = useState(false);
-  const [recoveryCode, setRecoveryCode] = useState('');
-  const [recovering, setRecovering] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneChallengeId, setPhoneChallengeId] = useState('');
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -39,10 +38,10 @@ export default function ProfileDialog({ open, user, onClose, onSubmit, onRotateR
       setTheme(user?.theme || 'light');
       setColor(user?.color || 'sage');
       setAvatarData(user?.avatarData || null);
+      setPhone(user?.phone || '');
+      setPhoneCode('');
+      setPhoneChallengeId('');
       setError('');
-      setRecoveryCode('');
-      setRecoveryPassword('');
-      setRecoveryPasswordVisible(false);
     }
   }, [open, user?.id]);
 
@@ -85,27 +84,32 @@ export default function ProfileDialog({ open, user, onClose, onSubmit, onRotateR
     reader.readAsDataURL(file);
   };
 
-  const handleRotateCode = async () => {
+  const handlePhoneStart = async () => {
     setError('');
-    setRecovering(true);
+    setPhoneBusy(true);
     try {
-      const result = await onRotateRecoveryCode(recoveryPassword);
-      setRecoveryCode(result.recoveryCode);
-      setRecoveryPassword('');
-    } catch (rotateError) {
-      setError(rotateError.message);
+      const result = await onPhoneStart(phone.trim());
+      setPhoneChallengeId(result.challengeId);
+      setPhoneCode('');
+    } catch (phoneError) {
+      setError(phoneError.message);
     } finally {
-      setRecovering(false);
+      setPhoneBusy(false);
     }
   };
 
-  const copyCode = async () => {
+  const handlePhoneVerify = async () => {
+    setError('');
+    setPhoneBusy(true);
     try {
-      await navigator.clipboard.writeText(recoveryCode);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setError('No pudimos copiarlo. Seleccioná el código para copiarlo manualmente.');
+      const result = await onPhoneVerify(phoneChallengeId, phoneCode);
+      onPhoneVerified(result.user);
+      setPhoneChallengeId('');
+      setPhoneCode('');
+    } catch (phoneError) {
+      setError(phoneError.message);
+    } finally {
+      setPhoneBusy(false);
     }
   };
 
@@ -132,17 +136,17 @@ export default function ProfileDialog({ open, user, onClose, onSubmit, onRotateR
             <option value="nickname" disabled={!nickname.trim()}>Mi apodo</option>
           </select><small className="profile-name-hint">El apellido no se comparte si elegís solo tu nombre o apodo.</small></label>
           <div className="profile-dialog__email"><span>Correo</span><strong>{user?.email}</strong></div>
+          <section className="profile-phone" aria-labelledby="profile-phone-title">
+            <div className="profile-phone__heading"><Phone size={16} /><strong id="profile-phone-title">Teléfono para recuperar la cuenta</strong></div>
+            {user?.phoneVerified && <p className="profile-phone__verified"><Check size={14} />Verificado: {user.phone}</p>}
+            <label className="form-field"><span>Número con código de país</span><input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+54 9 11 1234 5678" /></label>
+            {!phoneChallengeId ? <button className="button button--outline" type="button" onClick={handlePhoneStart} disabled={phoneBusy || !phone.trim()}>{phoneBusy ? 'Enviando código…' : user?.phoneVerified ? 'Cambiar teléfono' : 'Verificar teléfono'}</button> : (
+              <div className="profile-phone__verify"><label className="form-field"><span>Código de seis dígitos</span><input inputMode="numeric" autoComplete="one-time-code" value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} /></label><button className="button button--primary" type="button" onClick={handlePhoneVerify} disabled={phoneBusy || phoneCode.length !== 6}>{phoneBusy ? 'Verificando…' : 'Confirmar teléfono'}</button></div>
+            )}
+            <small>{phoneChallengeId ? 'Para proteger el cambio, primero confirmalo desde el correo de tu cuenta y después ingresá el código que llegó por SMS.' : 'Si olvidás el correo, este número te permite recuperar la cuenta. Para cambiarlo, confirmamos el pedido por correo y por SMS.'}</small>
+          </section>
           <fieldset className="profile-choice"><legend>Color de perfil</legend><div className="profile-colors">{COLORS.map((item) => <button type="button" key={item.id} className={`profile-color profile-color--${item.id}${color === item.id ? ' profile-color--selected' : ''}`} onClick={() => setColor(item.id)} aria-label={item.label} aria-pressed={color === item.id} />)}</div></fieldset>
           <fieldset className="profile-choice"><legend>Tema de la aplicación</legend><div className="profile-theme-options"><button type="button" className={theme === 'light' ? 'profile-theme profile-theme--selected' : 'profile-theme'} onClick={() => setTheme('light')} aria-pressed={theme === 'light'}><Sun size={16} />Claro</button><button type="button" className={theme === 'dark' ? 'profile-theme profile-theme--selected' : 'profile-theme'} onClick={() => setTheme('dark')} aria-pressed={theme === 'dark'}><Moon size={16} />Oscuro</button></div></fieldset>
-          <div className="profile-recovery">
-            <strong>Código de recuperación</strong>
-            {recoveryCode ? <><p>Este código nuevo reemplaza al anterior. Guardalo; es el que vas a usar si olvidás tu contraseña.</p><code>{recoveryCode}</code><button type="button" className="button button--outline" onClick={copyCode}>{copied ? 'Copiado' : 'Copiar código'}</button></> : (
-              <>
-                <p>Este código te permite cambiar tu contraseña desde la pantalla de acceso sin conocer la contraseña anterior. Si lo perdiste o querés reemplazarlo, podés hacerlo mientras tengas la sesión abierta; el código viejo dejará de servir.</p>
-                <div className="profile-recovery__form"><span className="password-input-wrap"><input type={recoveryPasswordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder="Contraseña actual" value={recoveryPassword} onChange={(event) => setRecoveryPassword(event.target.value)} aria-label="Contraseña actual para reemplazar el código" /><button className="password-visibility" type="button" aria-label={recoveryPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={recoveryPasswordVisible} onClick={() => setRecoveryPasswordVisible((visible) => !visible)}>{recoveryPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></span><button type="button" className="button button--outline" onClick={handleRotateCode} disabled={recovering || !recoveryPassword}>{recovering ? 'Reemplazando…' : 'Reemplazar código'}</button></div>
-              </>
-            )}
-          </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="task-dialog__actions"><button className="button button--quiet profile-dialog__logout" type="button" onClick={onSignOut}><LogOut size={15} />Cerrar sesión</button><button className="button button--primary" type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar perfil'}</button></div>
         </form>
