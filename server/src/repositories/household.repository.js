@@ -1,18 +1,22 @@
+// [SERVIDOR: ALMACENAMIENTO] Lee y guarda los datos locales de hogares y cuentas.
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { randomInt } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 const repositoryDirectory = dirname(fileURLToPath(import.meta.url));
-const dataFile = resolve(process.env.EN_EQUIPO_DATA_FILE || resolve(repositoryDirectory, '../../data/household.json'));
+const dataFile = resolve(
+  process.env.EN_EQUIPO_DATA_FILE || resolve(repositoryDirectory, '../../data/household.json')
+);
 let mutationQueue = Promise.resolve();
-
 const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-
 export function createInviteCode() {
-  return Array.from({ length: 10 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
+  return Array.from(
+    {
+      length: 10,
+    },
+    () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]
+  ).join('');
 }
-
 function createInitialState() {
   return {
     version: 3,
@@ -21,30 +25,46 @@ function createInitialState() {
     authChallenges: [],
     joinRequests: [],
     invitations: [],
-    households: [{
-      id: 'casa-en-equipo',
-      name: 'Nuestra casa',
-      timezone: 'America/Argentina/Buenos_Aires',
-      inviteCode: createInviteCode(),
-      ownerId: null,
-      members: [],
-      tasks: [],
-    }],
+    households: [
+      {
+        id: 'casa-en-equipo',
+        name: 'Nuestra casa',
+        timezone: 'America/Argentina/Buenos_Aires',
+        inviteCode: createInviteCode(),
+        ownerId: null,
+        members: [],
+        tasks: [],
+      },
+    ],
   };
 }
-
 function migrateLegacyState(legacyState) {
-  const legacyHousehold = legacyState.household || { id: 'casa-en-equipo', name: 'Casa de los García', timezone: 'America/Argentina/Buenos_Aires' };
+  const legacyHousehold = legacyState.household || {
+    id: 'casa-en-equipo',
+    name: 'Casa de los García',
+    timezone: 'America/Argentina/Buenos_Aires',
+  };
   const household = {
     ...legacyHousehold,
     inviteCode: createInviteCode(),
     ownerId: null,
-    members: (legacyState.members || []).map((member) => ({ ...member, userId: null, role: 'member' })),
+    members: (legacyState.members || []).map((member) => ({
+      ...member,
+      userId: null,
+      role: 'member',
+    })),
     tasks: legacyState.tasks || [],
   };
-  return { version: 3, users: [], sessions: [], authChallenges: [], joinRequests: [], invitations: [], households: [household] };
+  return {
+    version: 3,
+    users: [],
+    sessions: [],
+    authChallenges: [],
+    joinRequests: [],
+    invitations: [],
+    households: [household],
+  };
 }
-
 async function readState() {
   try {
     const storedState = JSON.parse(await readFile(dataFile, 'utf8'));
@@ -52,7 +72,10 @@ async function readState() {
       let changed = false;
       if (!Array.isArray(storedState.joinRequests)) storedState.joinRequests = [];
       if (!Array.isArray(storedState.sessions)) storedState.sessions = [];
-      if (!Array.isArray(storedState.authChallenges)) { storedState.authChallenges = []; changed = true; }
+      if (!Array.isArray(storedState.authChallenges)) {
+        storedState.authChallenges = [];
+        changed = true;
+      }
       if (!Array.isArray(storedState.users)) storedState.users = [];
       if (!Array.isArray(storedState.invitations)) storedState.invitations = [];
       for (const household of storedState.households) {
@@ -61,7 +84,10 @@ async function readState() {
           changed = true;
         }
       }
-      if (storedState.version !== 3) { storedState.version = 3; changed = true; }
+      if (storedState.version !== 3) {
+        storedState.version = 3;
+        changed = true;
+      }
       if (changed) await writeState(storedState);
       return storedState;
     }
@@ -75,18 +101,17 @@ async function readState() {
     return initialState;
   }
 }
-
 async function writeState(state) {
-  await mkdir(dirname(dataFile), { recursive: true });
+  await mkdir(dirname(dataFile), {
+    recursive: true,
+  });
   const temporaryFile = `${dataFile}.tmp`;
   await writeFile(temporaryFile, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
   await rename(temporaryFile, dataFile);
 }
-
 export async function getHouseholdState() {
   return readState();
 }
-
 export async function updateHouseholdState(update) {
   const operation = mutationQueue.then(async () => {
     const state = await readState();

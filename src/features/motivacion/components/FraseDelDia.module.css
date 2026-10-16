@@ -1,0 +1,94 @@
+/* [ESTILOS LOCALES: FRASE DEL DÍA] Mantiene la tarjeta dentro de la paleta del tema. */
+.tarjeta {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 17px 19px;
+  margin-bottom: 20px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.encabezado,
+.pie {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.encabezado h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.encabezado span,
+.fuente,
+.pie cite {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.cita {
+  max-width: 72ch;
+  margin: 0 auto;
+  color: var(--green-text);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.pie cite {
+  font-style: normal;
+}
+
+.fuente {
+  margin-left: auto;
+  text-align: right;
+  text-underline-offset: 2px;
+}
+
+.fuente:hover {
+  color: var(--green-text);
+}
+
+.cargando {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .tarjeta {
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .encabezado,
+  .pie {
+    align-items: flex-start;
+  }
+
+  .encabezado {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cita {
+    font-size: 14px;
+  }
+}

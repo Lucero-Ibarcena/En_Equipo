@@ -1,7 +1,10 @@
-/* [ESTILOS GLOBALES] Reset, tipografía y tokens compartidos para temas claro y oscuro. */
+/* [ESTILOS GLOBALES] Normalización, tipografía y variables compartidas por los temas claro y
+  oscuro. */
 :root {
   color-scheme: light;
-  font-family: 'Aptos', 'Segoe UI', sans-serif;
+  /* [FUENTE PRINCIPAL Y RESPALDOS 1, 2 Y 3] Aptos, Segoe UI, Helvetica Neue y Arial; sans-serif
+    es el último recurso. */
+  font-family: 'Aptos', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-weight: 400;
   color: var(--ink);
   background: var(--canvas);
@@ -10,7 +13,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
-
   --ink: #2e3d34;
   --muted: #66736a;
   --soft-muted: #87948a;
@@ -31,26 +33,26 @@
   --warning-text: #956849;
   --warning-surface: #fbf1e9;
   --ink-on-danger: #ffffff;
-  --avatar-sage-bg: #dce8dc;
-  --avatar-sage-text: #466251;
-  --avatar-blue-bg: #dce7ed;
-  --avatar-blue-text: #4e6478;
-  --avatar-peach-bg: #f1dfd3;
-  --avatar-peach-text: #8d6859;
-  --avatar-plum-bg: #eadfeb;
-  --avatar-plum-text: #765c78;
-  --avatar-teal-bg: #d6ebe7;
-  --avatar-teal-text: #356d68;
-  --avatar-rose-bg: #f0dce5;
-  --avatar-rose-text: #825166;
-  --avatar-gold-bg: #f1e8c9;
-  --avatar-gold-text: #76602e;
-  --avatar-lavender-bg: #e4e1f5;
-  --avatar-lavender-text: #5d588b;
-  --avatar-coral-bg: #f4dcd4;
-  --avatar-coral-text: #8b5148;
-  --avatar-sky-bg: #d7e8f3;
-  --avatar-sky-text: #41647d;
+  --avatar-sage-bg: #d2ead5;
+  --avatar-sage-text: #315338;
+  --avatar-blue-bg: #d8e0fa;
+  --avatar-blue-text: #3d4f8a;
+  --avatar-peach-bg: #fae0c8;
+  --avatar-peach-text: #80502d;
+  --avatar-plum-bg: #efd8f2;
+  --avatar-plum-text: #684174;
+  --avatar-teal-bg: #c5ece6;
+  --avatar-teal-text: #236158;
+  --avatar-rose-bg: #f3d5df;
+  --avatar-rose-text: #843e56;
+  --avatar-gold-bg: #f3e9ba;
+  --avatar-gold-text: #6e5715;
+  --avatar-lavender-bg: #dfdaf5;
+  --avatar-lavender-text: #584890;
+  --avatar-coral-bg: #f9d6ca;
+  --avatar-coral-text: #804538;
+  --avatar-sky-bg: #cde8f5;
+  --avatar-sky-text: #31627d;
   --avatar-empty-bg: #eef0ec;
   --avatar-empty-text: #68756d;
   --focus-ring: #88a287;
@@ -59,9 +61,9 @@
   --shadow-ink: rgb(27 46 36 / 20%);
   --shadow-soft: 0 16px 44px rgb(27 46 36 / 12%);
   --shadow-strong: 0 22px 70px rgb(27 46 36 / 20%);
-  --font-heading: 'Aptos Display', 'Segoe UI', sans-serif;
+  /* [FUENTE DE TÍTULOS Y RESPALDOS 1, 2 Y 3] Aptos Display, Segoe UI, Helvetica Neue y Arial. */
+  --font-heading: 'Aptos Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
-
 :root[data-theme='dark'] {
   color-scheme: dark;
   --ink: #e4ebe5;
@@ -84,26 +86,26 @@
   --warning-text: #d2af87;
   --warning-surface: #393328;
   --ink-on-danger: #fff4f1;
-  --avatar-sage-bg: #334137;
-  --avatar-sage-text: #c0d5c2;
-  --avatar-blue-bg: #293944;
-  --avatar-blue-text: #c0d5e0;
-  --avatar-peach-bg: #46352d;
-  --avatar-peach-text: #e2c1ae;
-  --avatar-plum-bg: #3d3141;
-  --avatar-plum-text: #ddc5e0;
-  --avatar-teal-bg: #24403d;
-  --avatar-teal-text: #b8dcd6;
-  --avatar-rose-bg: #432e37;
-  --avatar-rose-text: #e4bdca;
-  --avatar-gold-bg: #403925;
-  --avatar-gold-text: #e1d29d;
-  --avatar-lavender-bg: #37334c;
-  --avatar-lavender-text: #d0caee;
-  --avatar-coral-bg: #482f2b;
-  --avatar-coral-text: #e9b7a8;
-  --avatar-sky-bg: #293b48;
-  --avatar-sky-text: #c2d8e6;
+  --avatar-sage-bg: #2f4834;
+  --avatar-sage-text: #bbdfc0;
+  --avatar-blue-bg: #303856;
+  --avatar-blue-text: #cbd5fb;
+  --avatar-peach-bg: #4b3625;
+  --avatar-peach-text: #f2d0b1;
+  --avatar-plum-bg: #49324c;
+  --avatar-plum-text: #e6c7ee;
+  --avatar-teal-bg: #21443f;
+  --avatar-teal-text: #b9e5dc;
+  --avatar-rose-bg: #4a2f3a;
+  --avatar-rose-text: #f0c4d1;
+  --avatar-gold-bg: #473d23;
+  --avatar-gold-text: #eee0a0;
+  --avatar-lavender-bg: #373052;
+  --avatar-lavender-text: #d4c9fa;
+  --avatar-coral-bg: #51342d;
+  --avatar-coral-text: #f3c2b3;
+  --avatar-sky-bg: #233c49;
+  --avatar-sky-text: #bde3f5;
   --avatar-empty-bg: #2b332d;
   --avatar-empty-text: #c2ccc4;
   --focus-ring: #8eaa91;
@@ -113,15 +115,36 @@
   --shadow-soft: 0 16px 44px rgb(0 0 0 / 24%);
   --shadow-strong: 0 22px 70px rgb(0 0 0 / 45%);
 }
-
-* { box-sizing: border-box; }
-
-html, body { min-height: 100%; }
-body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: clip; }
-button, input, select, textarea { font: inherit; }
-button { color: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  min-height: 100%;
+}
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: clip;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
-::selection { background: var(--green-light); color: var(--ink); }
+::selection {
+  background: var(--green-light);
+  color: var(--ink);
+}

@@ -1,0 +1,583 @@
+/* [TEMA OSCURO] Ajustes exclusivos de la aplicación; los colores base están en
+  src/styles/global.css. */
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] .app-shell,
+:root[data-theme='dark'] .main-content {
+  color: var(--ink);
+  background: var(--canvas);
+}
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .topbar,
+:root[data-theme='dark'] .task-board,
+:root[data-theme='dark'] .aside-card,
+:root[data-theme='dark'] .notification-popover,
+:root[data-theme='dark'] .task-dialog,
+:root[data-theme='dark'] .help-dialog,
+:root[data-theme='dark'] .household-dialog,
+:root[data-theme='dark'] .auth-card {
+  color: var(--ink);
+  background: var(--paper);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .topbar {
+  border-bottom-color: var(--line);
+}
+:root[data-theme='dark'] .brand-mark__name,
+:root[data-theme='dark'] .home-switcher__copy strong,
+:root[data-theme='dark'] .welcome-row h1,
+:root[data-theme='dark'] .task-board__heading h2,
+:root[data-theme='dark'] .category-section__heading h3,
+:root[data-theme='dark'] .aside-card__heading h3,
+:root[data-theme='dark'] .balance-card h2,
+:root[data-theme='dark'] .task-dialog h2,
+:root[data-theme='dark'] .help-dialog h2,
+:root[data-theme='dark'] .household-dialog h2,
+:root[data-theme='dark'] .auth-card h1,
+:root[data-theme='dark'] .task-item__body h3,
+:root[data-theme='dark'] .household-invite strong,
+:root[data-theme='dark'] .profile-dialog__email strong {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .home-switcher,
+:root[data-theme='dark'] .stat-card,
+:root[data-theme='dark'] .category-section,
+:root[data-theme='dark'] .home-menu,
+:root[data-theme='dark'] .household-search-result,
+:root[data-theme='dark'] .profile-dialog__email {
+  background: var(--surface-raised);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .stat-card--main,
+:root[data-theme='dark'] .nav-link--active,
+:root[data-theme='dark'] .status-tab--active,
+:root[data-theme='dark'] .footer-check,
+:root[data-theme='dark'] .task-status--done,
+:root[data-theme='dark'] .auth-card__icon,
+:root[data-theme='dark'] .help-dialog__mark,
+:root[data-theme='dark'] .guide-step__number {
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .stat-card__deco--circle {
+  border-color: var(--line);
+  box-shadow:
+    0 0 0 9px rgb(120 169 134 / 10%),
+    0 0 0 19px rgb(120 169 134 / 6%);
+}
+:root[data-theme='dark'] .stat-card__deco--sun {
+  background: var(--warning-surface);
+  border-color: var(--line);
+  box-shadow: 0 0 0 6px rgb(210 175 135 / 8%);
+}
+:root[data-theme='dark'] .stat-card__deco--leaf {
+  color: var(--green-light);
+}
+:root[data-theme='dark'] .stat-card__value,
+:root[data-theme='dark'] .nav-link--active,
+:root[data-theme='dark'] .text-link {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .button--outline,
+:root[data-theme='dark'] .button--quiet,
+:root[data-theme='dark'] .status-tab,
+:root[data-theme='dark'] .task-search,
+:root[data-theme='dark'] .profile-theme {
+  color: var(--green-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .button--outline:hover,
+:root[data-theme='dark'] .status-tab:hover,
+:root[data-theme='dark'] .profile-theme--selected {
+  background: var(--focus-surface);
+}
+:root[data-theme='dark'] .status-tab--active {
+  color: var(--green-text);
+  border-color: var(--green-border);
+  box-shadow: inset 0 -2px 0 var(--green);
+}
+:root[data-theme='dark'] .task-search--inline {
+  color: var(--muted);
+  background: var(--surface-inset);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .task-search__close {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .task-search__close:hover {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .household-rename {
+  background: var(--surface-inset);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .form-field,
+:root[data-theme='dark'] .profile-choice legend {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .form-field input,
+:root[data-theme='dark'] .form-field select,
+:root[data-theme='dark'] .form-field textarea,
+:root[data-theme='dark'] .task-search input,
+:root[data-theme='dark'] .password-visibility {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .task-search input::placeholder {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .password-visibility:hover {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .task-item,
+:root[data-theme='dark'] .task-toolbar,
+:root[data-theme='dark'] .task-board__footer,
+:root[data-theme='dark'] .category-section,
+:root[data-theme='dark'] .faq-list details,
+:root[data-theme='dark'] .guide-step {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .task-item__body h3,
+:root[data-theme='dark'] .notification-popover__item strong,
+:root[data-theme='dark'] .faq-list summary,
+:root[data-theme='dark'] .guide-step h3,
+:root[data-theme='dark'] .household-search-result strong {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .task-item__notes p,
+:root[data-theme='dark'] .task-dialog__intro,
+:root[data-theme='dark'] .auth-card__intro p,
+:root[data-theme='dark'] .help-dialog p,
+:root[data-theme='dark'] .guide-step p,
+:root[data-theme='dark'] .faq-list p {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .home-menu__item,
+:root[data-theme='dark'] .home-menu__manage,
+:root[data-theme='dark'] .people-list__person,
+:root[data-theme='dark'] .task-item__assignee,
+:root[data-theme='dark'] .task-item__meta,
+:root[data-theme='dark'] .welcome-row p,
+:root[data-theme='dark'] .topbar__date {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .home-menu__item:hover,
+:root[data-theme='dark'] .home-menu__manage:hover,
+:root[data-theme='dark'] .notification-popover__item:hover {
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .household-invite,
+:root[data-theme='dark'] .household-search-refresh,
+:root[data-theme='dark'] .help-dialog__footer,
+:root[data-theme='dark'] .sidebar-tip,
+:root[data-theme='dark'] .balance-card {
+  color: var(--green-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .balance-card h2 {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .household-invite__code code {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .task-status,
+:root[data-theme='dark'] .task-status--in_progress {
+  color: var(--warning-text);
+  background: var(--warning-surface);
+}
+:root[data-theme='dark'] .task-status--done {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .auth-screen,
+:root[data-theme='dark'] .household-setup {
+  background: radial-gradient(ellipse at 50% 5%, var(--surface-soft) 0, var(--canvas) 52%);
+}
+:root[data-theme='dark'] .empty-state h3 {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .page-footer {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .profile-choice {
+  border-top-color: var(--line);
+}
+:root[data-theme='dark'] .profile-theme--selected {
+  color: var(--green-text);
+  border-color: var(--green-border);
+}
+:root[data-theme='dark'] .sidebar__category-manage:hover {
+  color: var(--green-text);
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .category-create,
+:root[data-theme='dark'] .category-manager__row,
+:root[data-theme='dark'] .profile-phone,
+:root[data-theme='dark'] .recovery-cancelled {
+  color: var(--green-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .category-manager__icon,
+:root[data-theme='dark'] .household-share-dialog__mark {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .household-share-dialog h2 {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .household-share-dialog__qr,
+:root[data-theme='dark'] .household-share-dialog__code,
+:root[data-theme='dark'] .recovery-channel,
+:root[data-theme='dark'] .recovery-message {
+  color: var(--green-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .household-share-dialog__code code {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .profile-phone__heading,
+:root[data-theme='dark'] .profile-phone__verified,
+:root[data-theme='dark'] .recovery-confirmation legend {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .profile-phone > small,
+:root[data-theme='dark'] .household-share-dialog__sms small,
+:root[data-theme='dark'] .category-manager__guest {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .recovery-confirmation {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .recovery-channel__option--active {
+  color: var(--green-text);
+  background: var(--surface-inset);
+  border-color: var(--green-border);
+}
+:root[data-theme='dark'] .form-field__date-label svg {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__trigger {
+  color: var(--muted);
+  background: var(--surface-inset);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .date-picker__trigger:hover,
+:root[data-theme='dark'] .date-picker__trigger[aria-expanded='true'] {
+  background: var(--surface-soft);
+  border-color: var(--green-border);
+  box-shadow: 0 0 0 3px var(--focus-surface);
+}
+:root[data-theme='dark'] .date-picker__trigger--selected {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__trigger svg {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__popover {
+  color: var(--ink);
+  background: var(--paper);
+  border-color: var(--line);
+  box-shadow: 0 18px 44px var(--shadow-ink);
+}
+:root[data-theme='dark'] .date-picker__nav {
+  color: var(--green-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .date-picker__nav:hover,
+:root[data-theme='dark'] .date-picker__day:hover {
+  color: var(--green-text);
+  background: var(--focus-surface);
+}
+:root[data-theme='dark'] .date-picker__month strong {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .date-picker__month span,
+:root[data-theme='dark'] .date-picker__weekday {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .date-picker__day {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__day--outside {
+  color: var(--soft-muted);
+}
+:root[data-theme='dark'] .date-picker__day--today:not(.date-picker__day--selected) {
+  color: var(--green-text);
+  background: var(--green-light);
+  border-color: var(--green-border);
+}
+:root[data-theme='dark'] .date-picker__day--selected,
+:root[data-theme='dark'] .date-picker__day--selected:hover {
+  color: var(--ink-on-accent);
+  background: var(--green-text);
+  border-color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__footer {
+  border-top-color: var(--line);
+}
+:root[data-theme='dark'] .date-picker__text-button {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .date-picker__text-button:hover {
+  background: var(--focus-surface);
+}
+:root[data-theme='dark'] .date-picker__clear {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .confirm-dialog__icon {
+  color: var(--danger-text);
+  background: var(--danger-surface);
+}
+:root[data-theme='dark'] .button--danger {
+  color: var(--ink-on-danger);
+  background: var(--danger);
+  border-color: var(--danger);
+}
+:root[data-theme='dark'] .category-manager__delete {
+  color: var(--danger-text);
+}
+:root[data-theme='dark'] .category-manager__delete:hover {
+  background: var(--danger-surface);
+}
+:root[data-theme='dark'] .notification-popover__copy .notification-popover__due {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .task-item__notes p {
+  border-left-color: var(--green-border);
+}
+:root[data-theme='dark'] .profile-name-hint {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .household-invite > p,
+:root[data-theme='dark'] .household-invite__details small,
+:root[data-theme='dark'] .invitation-card span,
+:root[data-theme='dark'] .invitation-empty {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .invitation-card {
+  color: var(--ink);
+  background: var(--surface-raised);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .invitation-card strong {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .invitation-dialog h2 {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .status-tab__count {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .status-tab--active .status-tab__count {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .task-item__edit,
+:root[data-theme='dark'] .task-item__archive,
+:root[data-theme='dark'] .task-item__restore,
+:root[data-theme='dark'] .task-item__delete {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .task-item__edit:hover,
+:root[data-theme='dark'] .task-item__archive:hover,
+:root[data-theme='dark'] .task-item__restore:hover {
+  color: var(--green-text);
+  background: var(--focus-surface);
+}
+:root[data-theme='dark'] .task-item__delete:hover,
+:root[data-theme='dark'] .task-draft__delete:hover {
+  color: var(--danger-text);
+  background: var(--danger-surface);
+}
+:root[data-theme='dark'] .task-item__delete--permanent {
+  color: var(--danger-text);
+  opacity: 1;
+}
+:root[data-theme='dark'] .task-status--archived {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .task-status--trash {
+  color: var(--danger-text);
+  background: var(--danger-surface);
+}
+:root[data-theme='dark'] .task-draft {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .task-draft__icon {
+  color: var(--green-text);
+  background: var(--green-light);
+}
+:root[data-theme='dark'] .task-draft__body h3 {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .task-draft__body p,
+:root[data-theme='dark'] .task-draft__saved {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .task-draft__delete {
+  color: var(--danger-text);
+}
+:root[data-theme='dark'] .task-draft-hint {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .household-share-dialog__local-note {
+  color: var(--warning-text);
+}
+/* Superficies y controles del tema oscuro que aparecen fuera del tablero principal. */
+:root[data-theme='dark'] .home-switcher__icon,
+:root[data-theme='dark'] .balance-card__icon,
+:root[data-theme='dark'] .empty-state__icon,
+:root[data-theme='dark'] .task-item__category-icon,
+:root[data-theme='dark'] .task-draft__icon,
+:root[data-theme='dark'] .sidebar__category-manage:hover,
+:root[data-theme='dark'] .nav-link {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .nav-link:hover,
+:root[data-theme='dark'] .quiet-icon-button:hover,
+:root[data-theme='dark'] .icon-button:hover {
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .nav-link:hover,
+:root[data-theme='dark'] .topbar__help,
+:root[data-theme='dark'] .topbar__account {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .topbar__help:hover {
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .topbar__account--guest {
+  color: var(--ink-on-accent);
+}
+:root[data-theme='dark'] .topbar__theme {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .nav-link__count {
+  color: var(--green-text);
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .task-board__count {
+  color: var(--green-text);
+  background: var(--surface-soft);
+}
+:root[data-theme='dark'] .sidebar__section-label,
+:root[data-theme='dark'] .eyebrow,
+:root[data-theme='dark'] .sidebar__people-empty,
+:root[data-theme='dark'] .category-section__empty,
+:root[data-theme='dark'] .empty-state,
+:root[data-theme='dark'] .empty-state p {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .empty-state h3 {
+  color: var(--ink);
+}
+:root[data-theme='dark'] .loading-spinner {
+  border-color: var(--line);
+  border-top-color: var(--green);
+}
+:root[data-theme='dark'] .form-field input,
+:root[data-theme='dark'] .form-field select,
+:root[data-theme='dark'] .form-field textarea {
+  color: var(--ink);
+  background: var(--surface-inset);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .form-field input::placeholder,
+:root[data-theme='dark'] .form-field textarea::placeholder {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .task-dialog,
+:root[data-theme='dark'] .help-dialog,
+:root[data-theme='dark'] .household-dialog,
+:root[data-theme='dark'] .notification-popover {
+  box-shadow: var(--shadow-strong);
+}
+:root[data-theme='dark'] .error-banner {
+  color: var(--warning-text);
+  background: var(--warning-surface);
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .error-banner--action button {
+  color: var(--warning-text);
+}
+:root[data-theme='dark'] .avatar {
+  border-color: var(--paper);
+}
+:root[data-theme='dark'] .avatar--sage,
+:root[data-theme='dark'] .avatar--blue,
+:root[data-theme='dark'] .avatar--peach,
+:root[data-theme='dark'] .avatar--plum,
+:root[data-theme='dark'] .avatar--teal,
+:root[data-theme='dark'] .avatar--rose,
+:root[data-theme='dark'] .avatar--gold,
+:root[data-theme='dark'] .avatar--lavender,
+:root[data-theme='dark'] .avatar--coral,
+:root[data-theme='dark'] .avatar--sky,
+:root[data-theme='dark'] .avatar--empty {
+  border-color: var(--paper);
+}
+:root[data-theme='dark'] .avatar--sage {
+  color: var(--avatar-sage-text);
+  background: var(--avatar-sage-bg);
+}
+:root[data-theme='dark'] .avatar--blue {
+  color: var(--avatar-blue-text);
+  background: var(--avatar-blue-bg);
+}
+:root[data-theme='dark'] .avatar--peach {
+  color: var(--avatar-peach-text);
+  background: var(--avatar-peach-bg);
+}
+:root[data-theme='dark'] .avatar--plum {
+  color: var(--avatar-plum-text);
+  background: var(--avatar-plum-bg);
+}
+:root[data-theme='dark'] .avatar--teal {
+  color: var(--avatar-teal-text);
+  background: var(--avatar-teal-bg);
+}
+:root[data-theme='dark'] .avatar--rose {
+  color: var(--avatar-rose-text);
+  background: var(--avatar-rose-bg);
+}
+:root[data-theme='dark'] .avatar--gold {
+  color: var(--avatar-gold-text);
+  background: var(--avatar-gold-bg);
+}
+:root[data-theme='dark'] .avatar--lavender {
+  color: var(--avatar-lavender-text);
+  background: var(--avatar-lavender-bg);
+}
+:root[data-theme='dark'] .avatar--coral {
+  color: var(--avatar-coral-text);
+  background: var(--avatar-coral-bg);
+}
+:root[data-theme='dark'] .avatar--sky {
+  color: var(--avatar-sky-text);
+  background: var(--avatar-sky-bg);
+}
+:root[data-theme='dark'] .avatar--empty {
+  color: var(--avatar-empty-text);
+  background: var(--avatar-empty-bg);
+}
+:root[data-theme='dark'] .gentle-reminder > span {
+  color: var(--green-text);
+}
+:root[data-theme='dark'] .shopping-preview__check {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .task-status--in_progress {
+  color: var(--warning-text);
+  background: var(--warning-surface);
+}
+:root[data-theme='dark'] .task-status--done {
+  color: var(--green-text);
+  background: var(--green-light);
+}

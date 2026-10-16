@@ -1,3 +1,4 @@
+// [SERVIDOR: FECHAS] Calcula fechas y vencimientos respetando la zona horaria del hogar.
 export function dateOffsetFromToday(offset) {
   const date = new Date();
   date.setHours(12, 0, 0, 0);
